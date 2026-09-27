@@ -22,4 +22,12 @@ describe('Discord Bot /inventory Command Handler', () => {
     expect(result.totalPages).toBe(3);
     expect(result.currentPage).toBe(1);
   });
+
+  it('handles new users and empty inventories gracefully without throwing', async () => {
+    const { handleInventoryCommand } = await import('../src/commands/inventory');
+    const result = await handleInventoryCommand('new-user-test', 'BrandNewPlayer', 1);
+    expect(result.success).toBe(true);
+    expect(result.empty).toBe(true);
+    expect(result.message).toContain("You don't own any cards yet!");
+  });
 });

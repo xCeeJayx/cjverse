@@ -4,6 +4,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
+    "dotenv": "^18.0.4",
     "drizzle-orm": "^0.38.4",
     "postgres": "^3.4.9"
   },

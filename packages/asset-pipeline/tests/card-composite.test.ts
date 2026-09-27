@@ -25,4 +25,27 @@ describe('Canvas Card Composite Renderer with Fallback', () => {
     expect(pngBuffer[2]).toBe(0x4e);
     expect(pngBuffer[3]).toBe(0x47);
   });
+
+  it('renders procedural card canvas without errors when asset directory is /public/assets or missing', async () => {
+    const mockCard: CardEntity = {
+      seed: 99,
+      race: 'elf',
+      variant: 'silver',
+      element: 'water',
+      elementTier: 'B',
+      evolutionStage: 1,
+      level: 3,
+      powerScore: 620,
+    };
+    const publicBuffer = await renderCardComposite(mockCard, '/public/assets');
+    expect(publicBuffer).toBeInstanceOf(Buffer);
+    expect(publicBuffer[0]).toBe(0x89);
+    expect(publicBuffer[1]).toBe(0x50);
+    expect(publicBuffer[2]).toBe(0x4e);
+    expect(publicBuffer[3]).toBe(0x47);
+
+    const defaultBuffer = await renderCardComposite(mockCard);
+    expect(defaultBuffer).toBeInstanceOf(Buffer);
+    expect(defaultBuffer[0]).toBe(0x89);
+  });
 });

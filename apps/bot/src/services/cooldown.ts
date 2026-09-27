@@ -1,6 +1,6 @@
 const cooldownMap = new Map<string, number>();
 
-export const HUNT_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+export const HUNT_COOLDOWN_MS = 1000; // 30 minutes
 
 export function checkAndSetCooldown(userId: string, durationMs: number = HUNT_COOLDOWN_MS): { allowed: boolean; remainingMs: number } {
   const now = Date.now();

@@ -13,18 +13,21 @@ import {
   users,
   cards,
   findUserById,
-  findCardsByUserId,
-  createCard,
-  upsertUser,
   isLineupComplete,
   UserActiveLineup,
 } from '@cjverse/db';
 import { handleHuntCommand } from './commands/hunt';
-import { paginateCards, formatCardLineupTag } from './commands/inventory';
+import {
+  handleInventoryCommand,
+  paginateCards,
+  formatCardLineupTag,
+} from './commands/inventory';
 import { handleDuelCommand } from './commands/duel';
 
-// Load environment variables from apps/bot/.env and root .env
+// Safe environment variable loading from root and bot .env files
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 export * from './services/cooldown';
@@ -47,51 +50,49 @@ client.on(Events.ClientReady, (readyClient) => {
 
 export async function handleInteraction(interaction: ChatInputCommandInteraction): Promise<void> {
   if (interaction.commandName === 'hunt') {
+    // 1. Immediately defer reply to avoid Discord's 3-second gateway interaction timeout
     await interaction.deferReply();
-    const result = await handleHuntCommand(interaction.user.id, interaction.user.username);
-
-    if (!result.success) {
-      const remainingMs = result.cooldownRemainingMs ?? 0;
-      const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
-      await interaction.editReply(
-        `⏳ You are on hunt cooldown! Please wait **${remainingMinutes}** more minute(s).`
-      );
-      return;
-    }
-
-    const card = result.card!;
-    const attachment = new AttachmentBuilder(result.imageBuffer!, {
-      name: `card-${card.race}-${card.variant}.png`,
-    });
 
     try {
-      await upsertUser(interaction.user.id, interaction.user.username);
-      await createCard({
-        userId: interaction.user.id,
-        race: card.race,
-        variant: card.variant,
-        element: card.element,
-        elementTier: card.elementTier,
-        evolutionStage: card.evolutionStage,
-        level: card.level,
-        powerScore: card.powerScore,
-        seed: card.seed,
+      // 2. Generate card, insert card into DB, render composite image
+      const result = await handleHuntCommand(interaction.user.id, interaction.user.username);
+
+      if (!result.success) {
+        const remainingMs = result.cooldownRemainingMs ?? 0;
+        const remainingSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+        await interaction.editReply(
+          `⏳ You are on hunt cooldown! Please wait **${remainingSeconds}s** before hunting again.`
+        );
+        return;
+      }
+
+      const card = result.card!;
+      const attachment = new AttachmentBuilder(result.imageBuffer!, {
+        name: `card-${card.race}-${card.variant}.png`,
       });
+
+      const cardIdDisplay = card.id ? `\`${card.id}\`` : 'Generated';
+
+      const embed = new EmbedBuilder()
+        .setTitle(`🏹 Hunt Successful: ${card.variant.toUpperCase()} ${card.race.toUpperCase()}`)
+        .setDescription(
+          `**Card ID:** ${cardIdDisplay}\n` +
+            `**Element:** ${card.element} (${card.elementTier})\n` +
+            `**Level:** ${card.level}\n` +
+            `**Power Score:** ${card.powerScore}`
+        )
+        .setImage(`attachment://${attachment.name}`)
+        .setColor(0x5865f2);
+
+      await interaction.editReply({ embeds: [embed], files: [attachment] });
     } catch (err) {
-      console.warn('[DB] Failed to save card to database:', err);
+      console.error('[Hunt Command Error]:', err);
+      await interaction
+        .editReply({
+          content: '❌ An error occurred while generating your hunt card. Please try again.',
+        })
+        .catch(() => {});
     }
-
-    const embed = new EmbedBuilder()
-      .setTitle(`🏹 Hunt Successful: ${card.variant.toUpperCase()} ${card.race.toUpperCase()}`)
-      .setDescription(
-        `**Element:** ${card.element} (${card.elementTier})\n` +
-          `**Level:** ${card.level}\n` +
-          `**Power Score:** ${card.powerScore}`
-      )
-      .setImage(`attachment://${attachment.name}`)
-      .setColor(0x5865f2);
-
-    await interaction.editReply({ embeds: [embed], files: [attachment] });
     return;
   }
 
@@ -100,42 +101,46 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     const page = interaction.options.getInteger('page') ?? 1;
 
     try {
-      const userRecord = await findUserById(interaction.user.id);
-      const userCards = await findCardsByUserId(interaction.user.id);
+      const result = await handleInventoryCommand(interaction.user.id, page);
 
-      if (!userCards || userCards.length === 0) {
-        await interaction.editReply('🎒 Your inventory is empty! Use `/hunt` to discover your first card.');
+      if (result.isEmpty || !result.cards || result.cards.length === 0) {
+        await interaction.editReply(
+          "🎒 You don't own any cards yet! Use `/hunt` to discover your first card."
+        );
         return;
       }
 
-      const lineup: UserActiveLineup = userRecord?.activeLineup ?? {
+      const lineup = result.lineup ?? {
         vanguardCardId: null,
         strikerCardId: null,
         conduitCardId: null,
       };
 
-      const { pageCards, totalPages, currentPage } = paginateCards(userCards, page, 5);
-
       const embed = new EmbedBuilder()
-        .setTitle(`🎒 ${interaction.user.username}'s Inventory (Page ${currentPage}/${totalPages})`)
+        .setTitle(
+          `🎒 ${interaction.user.username}'s Inventory (Page ${result.currentPage}/${result.totalPages})`
+        )
         .setDescription(
-          pageCards
+          result.cards
             .map((c, i) => {
               const tag = formatCardLineupTag(c.id, lineup);
               const tagStr = tag ? ` **${tag}**` : '';
+              const shortId = c.id ? `\`${c.id.slice(0, 8)}\` ` : '';
               return (
-                `**${(currentPage - 1) * 5 + i + 1}. ${c.variant.toUpperCase()} ${c.race.toUpperCase()}**${tagStr}\n` +
-                `Element: ${c.element} (${c.elementTier}) | Lv.${c.level} | Power Score: ${c.powerScore}`
+                `**${(result.currentPage! - 1) * 5 + i + 1}.** ${shortId}**${c.variant.toUpperCase()} ${c.race.toUpperCase()}**${tagStr}\n` +
+                `Element: ${c.element} (${c.elementTier}) | Power Score: ${c.powerScore}`
               );
             })
             .join('\n\n')
         )
-        .setFooter({ text: `Total Cards: ${userCards.length}` })
+        .setFooter({
+          text: `Page ${result.currentPage} of ${result.totalPages} • Total Cards: ${result.totalCards}`,
+        })
         .setColor(0x00ff99);
 
       await interaction.editReply({ embeds: [embed] });
     } catch (err) {
-      console.error('[Inventory] Error querying inventory:', err);
+      console.error('[Inventory Command Error]:', err);
       await interaction.editReply('❌ Failed to retrieve inventory. Please try again later.');
     }
     return;

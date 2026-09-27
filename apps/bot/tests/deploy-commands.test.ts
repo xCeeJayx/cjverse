@@ -22,4 +22,30 @@ describe('Discord Slash Command Deployment Definitions', () => {
     expect(targetOpt).toBeDefined();
     expect(targetOpt?.required).toBe(true);
   });
+
+  it('purges global commands when DISCORD_GUILD_ID is present', async () => {
+    const { vi } = await import('vitest');
+    const { deployCommands } = await import('../src/deploy-commands');
+    process.env.DISCORD_TOKEN = 'test-token';
+    process.env.DISCORD_CLIENT_ID = 'test-client-id';
+    process.env.DISCORD_GUILD_ID = 'test-guild-id';
+
+    const { REST } = await import('@discordjs/rest');
+    const putSpy = vi.spyOn(REST.prototype, 'put').mockResolvedValue([] as any);
+
+    await deployCommands();
+
+    expect(putSpy).toHaveBeenCalledTimes(2);
+    expect(putSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('/applications/test-client-id/commands'),
+      { body: [] }
+    );
+    expect(putSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/guilds/test-guild-id/commands'),
+      { body: expect.any(Array) }
+    );
+    putSpy.mockRestore();
+  });
 });

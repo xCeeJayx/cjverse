@@ -41,6 +41,9 @@ export async function deployCommands(): Promise<unknown> {
 
   let response: unknown;
   if (guildId && guildId.trim().length > 0) {
+    console.log('[Slash Commands] Purging duplicate global application (/) commands...');
+    await rest.put(Routes.applicationCommands(clientId), { body: [] });
+
     console.log(`[Slash Commands] Registering to Guild ID: ${guildId}`);
     response = await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
       body: commands,

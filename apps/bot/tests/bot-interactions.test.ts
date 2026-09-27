@@ -32,6 +32,31 @@ describe('Discord Bot Interaction Handler Runtime', () => {
     expect(callArg.files).toBeDefined();
   });
 
+  it('calls deferReply immediately before running hunt generator or db queries', async () => {
+    let deferCalledBeforeHunt = false;
+    const deferReplyMock = vi.fn().mockImplementation(() => {
+      deferCalledBeforeHunt = true;
+      return Promise.resolve();
+    });
+    const editReplyMock = vi.fn().mockResolvedValue(undefined);
+
+    const mockInteraction: any = {
+      commandName: 'hunt',
+      user: {
+        id: 'test-user-defer-order',
+        username: 'QuickHunter',
+      },
+      deferReply: deferReplyMock,
+      editReply: editReplyMock,
+    };
+
+    await handleInteraction(mockInteraction);
+
+    expect(deferReplyMock).toHaveBeenCalledOnce();
+    expect(deferCalledBeforeHunt).toBe(true);
+    expect(editReplyMock).toHaveBeenCalledOnce();
+  });
+
   it('handles /inventory command interaction for empty inventory', async () => {
     const deferReplyMock = vi.fn().mockResolvedValue(undefined);
     const editReplyMock = vi.fn().mockResolvedValue(undefined);

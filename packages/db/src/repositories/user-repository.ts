@@ -31,6 +31,53 @@ export async function findUserById(userId: string): Promise<UserRecord | undefin
   return result[0];
 }
 
-export async function upsertUser(id: string, username: string) {
-  return db.insert(users).values({ id, username }).onConflictDoNothing();
+export async function ensureUser(id: string, username: string): Promise<UserRecord> {
+  const existing = await findUserById(id);
+  if (existing) {
+    return existing;
+  }
+
+  const [inserted] = await db
+    .insert(users)
+    .values({
+      id,
+      username,
+      crystals: 100,
+      activeLineup: {
+        vanguardCardId: null,
+        strikerCardId: null,
+        conduitCardId: null,
+      },
+    })
+    .onConflictDoUpdate({
+      target: users.id,
+      set: { username },
+    })
+    .returning();
+
+  if (inserted) {
+    return inserted;
+  }
+
+  const fallback = await findUserById(id);
+  if (fallback) {
+    return fallback;
+  }
+
+  return {
+    id,
+    username,
+    avatarUrl: null,
+    crystals: 100,
+    activeLineup: {
+      vanguardCardId: null,
+      strikerCardId: null,
+      conduitCardId: null,
+    },
+    createdAt: new Date(),
+  };
+}
+
+export async function upsertUser(id: string, username: string): Promise<UserRecord> {
+  return ensureUser(id, username);
 }
