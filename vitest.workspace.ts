@@ -6,7 +6,8 @@ export default defineWorkspace([
   {
     test: {
       name: 'root',
-      include: ['tests/**/*.test.ts']
+      include: ['tests/**/*.test.ts'],
+      exclude: ['superpowers-main/**', '**/node_modules/**']
     }
   }
 ]);
