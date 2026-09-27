@@ -2,8 +2,7 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import { generateCardFromSeed, CardEntity } from '@cjverse/game-logic';
 import { renderCardComposite } from '@cjverse/asset-pipeline';
-import { db, users, cards, CardRecord } from '@cjverse/db';
-import { eq } from 'drizzle-orm';
+import { db, users, cards, CardRecord, eq } from '@cjverse/db';
 import { checkAndSetCooldown, resetCooldowns } from '../services/cooldown';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -31,7 +30,11 @@ export async function handleHuntCommand(userId: string, username: string): Promi
 
   // 1. Ensure user exists in users table
   try {
-    const existingUsers = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const existingUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
     if (!existingUsers || existingUsers.length === 0) {
       await db
         .insert(users)
@@ -54,7 +57,7 @@ export async function handleHuntCommand(userId: string, username: string): Promi
   // 3. Insert card into PostgreSQL database
   let savedCard: CardEntity | CardRecord = card;
   try {
-    const [persistedCard] = await db
+    const [persistedCard] = (await db
       .insert(cards)
       .values({
         userId,
@@ -67,7 +70,7 @@ export async function handleHuntCommand(userId: string, username: string): Promi
         powerScore: card.powerScore,
         seed: card.seed,
       })
-      .returning();
+      .returning()) as CardRecord[];
 
     if (persistedCard) {
       savedCard = persistedCard;

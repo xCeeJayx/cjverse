@@ -1,7 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
-import { db, users, cards, UserActiveLineup, CardRecord } from '@cjverse/db';
-import { eq } from 'drizzle-orm';
+import { db, users, cards, UserActiveLineup, CardRecord, eq } from '@cjverse/db';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -46,6 +45,7 @@ export interface InventoryQueryResult {
   lineup?: UserActiveLineup;
   empty?: boolean;
   success?: boolean;
+  message?: string;
   pageCards?: CardRecord[];
 }
 
@@ -69,7 +69,7 @@ export async function handleInventoryCommand(
 
   try {
     const [user] = await db
-      .select({ activeLineup: users.activeLineup })
+      .select()
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);

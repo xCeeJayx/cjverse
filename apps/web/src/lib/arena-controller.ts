@@ -4,6 +4,9 @@ export interface ArenaState {
   timeRemaining: number;
   p1: { id: string; name: string; cards: any[] };
   p2: { id: string; name: string; cards: any[] };
+  winnerId?: string | null;
+  combatLog?: string[];
+  lastAction?: any;
 }
 
 export class ArenaController {
@@ -12,7 +15,9 @@ export class ArenaController {
     activeCardId: null,
     timeRemaining: 15,
     p1: { id: '', name: '', cards: [] },
-    p2: { id: '', name: '', cards: [] }
+    p2: { id: '', name: '', cards: [] },
+    combatLog: [],
+    winnerId: null,
   };
 
   private autoBattleEnabled = false;
@@ -21,7 +26,18 @@ export class ArenaController {
     if (msg.type === 'ROOM_STATE') {
       this.state = {
         ...this.state,
-        ...msg.payload
+        ...msg.payload,
+        combatLog: msg.payload.combatLog || this.state.combatLog || [],
+      };
+    } else if (msg.type === 'ACTION_RESOLVED') {
+      const logs = [...(this.state.combatLog || [])];
+      if (msg.payload.combatLog) {
+        logs.push(msg.payload.combatLog);
+      }
+      this.state = {
+        ...this.state,
+        lastAction: msg.payload,
+        combatLog: logs,
       };
     }
   }

@@ -23,6 +23,29 @@ describe('Discord Slash Command Deployment Definitions', () => {
     expect(targetOpt?.required).toBe(true);
   });
 
+  it('defines /equip command with required slot choices and card_id', () => {
+    const equip = commands.find((c) => c.name === 'equip');
+    expect(equip).toBeDefined();
+    const slotOpt = equip?.options?.find((opt: any) => opt.name === 'slot');
+    expect(slotOpt).toBeDefined();
+    expect(slotOpt?.required).toBe(true);
+    expect((slotOpt as any)?.choices?.map((c: any) => c.value)).toEqual([
+      'vanguard',
+      'striker',
+      'conduit',
+    ]);
+
+    const cardIdOpt = equip?.options?.find((opt: any) => opt.name === 'card_id');
+    expect(cardIdOpt).toBeDefined();
+    expect(cardIdOpt?.required).toBe(true);
+  });
+
+  it('defines /duel-bot practice command correctly', () => {
+    const duelBot = commands.find((c) => c.name === 'duel-bot');
+    expect(duelBot).toBeDefined();
+    expect(duelBot?.description).toContain('Practice');
+  });
+
   it('purges global commands when DISCORD_GUILD_ID is present', async () => {
     const { vi } = await import('vitest');
     const { deployCommands } = await import('../src/deploy-commands');

@@ -3,8 +3,9 @@ export type RoomStatus = 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'ABORTED';
 export type ActionType = 'BASIC_ATTACK' | 'ELEMENTAL_BURST' | 'ULTIMATE';
 
 export interface JoinRoomPayload {
-  token: string;
+  token?: string;
   roomId: string;
+  userId?: string;
 }
 
 export interface ExecuteActionPayload {
@@ -19,6 +20,7 @@ export interface ActionResolvedPayload {
   isCrit: boolean;
   targetRemainingHp: number;
   animations: string[];
+  combatLog?: string;
 }
 
 export interface RoomStatePayload {
@@ -27,12 +29,16 @@ export interface RoomStatePayload {
   timeRemaining: number;
   p1: { id: string; name: string; cards: any[] };
   p2: { id: string; name: string; cards: any[] };
+  winnerId?: string | null;
+  combatLog?: string[];
 }
 
 export type WebSocketClientMessage =
-  | { type: 'JOIN_ROOM'; payload: JoinRoomPayload }
-  | { type: 'EXECUTE_ACTION'; payload: ExecuteActionPayload };
+  | { type: 'JOIN_ROOM'; roomId?: string; userId?: string; payload?: JoinRoomPayload }
+  | { type: 'EXECUTE_ACTION'; payload: ExecuteActionPayload }
+  | { type: 'TOGGLE_AUTO'; payload?: { enabled?: boolean } };
 
 export type WebSocketServerMessage =
   | { type: 'ROOM_STATE'; payload: RoomStatePayload }
-  | { type: 'ACTION_RESOLVED'; payload: ActionResolvedPayload };
+  | { type: 'ACTION_RESOLVED'; payload: ActionResolvedPayload }
+  | { type: 'ERROR'; payload: { message: string } };

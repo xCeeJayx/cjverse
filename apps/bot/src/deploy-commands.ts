@@ -24,6 +24,29 @@ export const commands = [
     .addUserOption((opt) =>
       opt.setName('target').setDescription('The opponent you want to challenge').setRequired(true)
     ),
+  new SlashCommandBuilder()
+    .setName('equip')
+    .setDescription('Equip a card to your active duel lineup (vanguard, striker, conduit)')
+    .addStringOption((opt) =>
+      opt
+        .setName('slot')
+        .setDescription('Lineup slot to assign')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Vanguard', value: 'vanguard' },
+          { name: 'Striker', value: 'striker' },
+          { name: 'Conduit', value: 'conduit' }
+        )
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName('card_id')
+        .setDescription('Card ID or first 4-8 characters of UUID')
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName('duel-bot')
+    .setDescription('Practice a 3v3 duel against an AI bot with instant arena access'),
 ].map((cmd) => cmd.toJSON());
 
 export async function deployCommands(): Promise<unknown> {

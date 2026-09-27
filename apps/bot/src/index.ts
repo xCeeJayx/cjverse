@@ -22,7 +22,8 @@ import {
   paginateCards,
   formatCardLineupTag,
 } from './commands/inventory';
-import { handleDuelCommand } from './commands/duel';
+import { handleDuelCommand, handleDuelBotCommand } from './commands/duel';
+import { handleEquipCommand } from './commands/equip';
 
 // Safe environment variable loading from root and bot .env files
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -34,6 +35,7 @@ export * from './services/cooldown';
 export * from './commands/hunt';
 export * from './commands/inventory';
 export * from './commands/duel';
+export * from './commands/equip';
 export * from './deploy-commands';
 
 export const client = new Client({
@@ -125,7 +127,7 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
             .map((c, i) => {
               const tag = formatCardLineupTag(c.id, lineup);
               const tagStr = tag ? ` **${tag}**` : '';
-              const shortId = c.id ? `\`${c.id.slice(0, 8)}\` ` : '';
+              const shortId = c.id ? `\`#${c.id.slice(0, 8)}\` ` : '';
               return (
                 `**${(result.currentPage! - 1) * 5 + i + 1}.** ${shortId}**${c.variant.toUpperCase()} ${c.race.toUpperCase()}**${tagStr}\n` +
                 `Element: ${c.element} (${c.elementTier}) | Power Score: ${c.powerScore}`
@@ -146,49 +148,141 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     return;
   }
 
+  if (interaction.commandName === 'equip') {
+    await interaction.deferReply();
+    const slot = interaction.options.getString('slot', true);
+    const cardId = interaction.options.getString('card_id', true);
+
+    try {
+      const result = await handleEquipCommand(interaction.user.id, slot, cardId);
+
+      if (!result.success) {
+        await interaction.editReply(`❌ **Equip Failed:** ${result.error}`);
+        return;
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle('⚔️ Active Lineup Updated!')
+        .setDescription(
+          `Successfully equipped card into your **${slot.toUpperCase()}** slot!\n\n` +
+            `**Current Active Lineup:**\n` +
+            `🛡️ **VANGUARD:** ${result.embedData?.vanguardCardName}\n` +
+            `⚔️ **STRIKER:** ${result.embedData?.strikerCardName}\n` +
+            `🔮 **CONDUIT:** ${result.embedData?.conduitCardName}`
+        )
+        .setColor(0x00ff99);
+
+      await interaction.editReply({ embeds: [embed] });
+    } catch (err) {
+      console.error('[Equip Command Error]:', err);
+      await interaction.editReply('❌ An error occurred while equipping your card.');
+    }
+    return;
+  }
+
   if (interaction.commandName === 'duel') {
     const target = interaction.options.getUser('target', true);
 
-    let challengerLineupComplete = false;
-    let targetLineupComplete = false;
-
-    try {
-      const challenger = await findUserById(interaction.user.id);
-      const opponent = await findUserById(target.id);
-
-      challengerLineupComplete = isLineupComplete(challenger?.activeLineup);
-      targetLineupComplete = isLineupComplete(opponent?.activeLineup);
-    } catch (err) {
-      console.warn('[DB] Lineup check query failed:', err);
-    }
-
-    const isDev = process.env.NODE_ENV !== 'production';
-    const defaultBaseUrl = isDev ? 'http://localhost:3000' : 'https://cjverse.me';
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || defaultBaseUrl;
-
-    const result = handleDuelCommand(
-      interaction.user.id,
-      target.id,
-      target.bot,
-      challengerLineupComplete,
-      targetLineupComplete,
-      baseUrl
-    );
-
-    if (!result.success) {
+    if (interaction.user.id === target.id) {
       await interaction.reply({
-        content: `❌ **Duel Challenge Failed:** ${result.error}`,
+        content: '❌ **Duel Challenge Failed:** Challenger and opponent must be distinct users.',
         ephemeral: true,
       });
       return;
     }
 
-    await interaction.reply({
-      content:
-        `⚔️ **DUEL CHALLENGE!**\n` +
+    if (target.bot) {
+      await interaction.reply({
+        content: '❌ **Duel Challenge Failed:** Cannot challenge a bot to a duel.',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    try {
+      const result = await handleDuelCommand(interaction.user.id, target.id, target.bot);
+
+      if (!result.success) {
+        if (interaction.deferred) {
+          await interaction.editReply(`❌ **Duel Challenge Failed:** ${result.error}`);
+        } else {
+          await interaction.reply({
+            content: `❌ **Duel Challenge Failed:** ${result.error}`,
+            ephemeral: true,
+          });
+        }
+        return;
+      }
+
+      const replyContent =
+        `⚔️ **DUEL CHALLENGE ACCEPTED!**\n` +
         `<@${interaction.user.id}> has challenged <@${target.id}> to a real-time card duel!\n\n` +
-        `👉 **Enter the Arena:** ${result.arenaUrl}`,
-    });
+        `👉 **Enter the Arena:** ${result.arenaUrl}`;
+
+      if (interaction.deferred) {
+        await interaction.editReply(replyContent);
+      } else {
+        await interaction.reply(replyContent);
+      }
+    } catch (err) {
+      console.error('[Duel Command Error]:', err);
+      if (interaction.deferred) {
+        await interaction.editReply('❌ An error occurred while creating the duel match room.');
+      } else {
+        await interaction.reply({
+          content: '❌ An error occurred while creating the duel match room.',
+          ephemeral: true,
+        });
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'duel-bot') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    try {
+      const result = await handleDuelBotCommand(interaction.user.id, interaction.user.username);
+
+      if (!result.success) {
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply(`❌ **Practice Duel Failed:** ${result.error}`);
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply({
+            content: `❌ **Practice Duel Failed:** ${result.error}`,
+            ephemeral: true,
+          });
+        }
+        return;
+      }
+
+      const replyContent =
+        `🤖 **PRACTICE DUEL CREATED!**\n` +
+        `<@${interaction.user.id}> vs **AI Training Bot** (3v3)\n\n` +
+        `👉 **Enter the Arena:** ${result.arenaUrl}`;
+
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(replyContent);
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply(replyContent);
+      }
+    } catch (err) {
+      console.error('[Duel-Bot Command Error]:', err);
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply('❌ An error occurred while creating the practice duel.').catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({
+          content: '❌ An error occurred while creating the practice duel.',
+          ephemeral: true,
+        }).catch(() => {});
+      }
+    }
     return;
   }
 }

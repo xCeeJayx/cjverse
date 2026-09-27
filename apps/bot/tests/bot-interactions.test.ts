@@ -105,4 +105,59 @@ describe('Discord Bot Interaction Handler Runtime', () => {
     const callArg = replyMock.mock.calls[0][0];
     expect(callArg.content).toContain('Cannot challenge a bot');
   });
+
+  it('handles /equip command interaction with deferReply and editReply', async () => {
+    const deferReplyMock = vi.fn().mockResolvedValue(undefined);
+    const editReplyMock = vi.fn().mockResolvedValue(undefined);
+
+    const mockInteraction: any = {
+      commandName: 'equip',
+      user: {
+        id: 'user-equip-test',
+        username: 'EquipTester',
+      },
+      options: {
+        getString: vi.fn().mockImplementation((opt: string) => {
+          if (opt === 'slot') return 'vanguard';
+          if (opt === 'card_id') return 'invalid_card_id';
+          return null;
+        }),
+      },
+      deferReply: deferReplyMock,
+      editReply: editReplyMock,
+    };
+
+    await handleInteraction(mockInteraction);
+
+    expect(deferReplyMock).toHaveBeenCalledOnce();
+    expect(editReplyMock).toHaveBeenCalledOnce();
+  });
+
+  it('handles /duel-bot command interaction with deferReply and editReply', async () => {
+    let deferred = false;
+    const deferReplyMock = vi.fn().mockImplementation(async () => {
+      deferred = true;
+    });
+    const editReplyMock = vi.fn().mockResolvedValue(undefined);
+    const replyMock = vi.fn().mockResolvedValue(undefined);
+
+    const mockInteraction: any = {
+      commandName: 'duel-bot',
+      user: {
+        id: 'user-practice-test',
+        username: 'PracticeTester',
+      },
+      get deferred() {
+        return deferred;
+      },
+      deferReply: deferReplyMock,
+      editReply: editReplyMock,
+      reply: replyMock,
+    };
+
+    await handleInteraction(mockInteraction);
+
+    expect(deferReplyMock).toHaveBeenCalledOnce();
+    expect(editReplyMock).toHaveBeenCalledOnce();
+  });
 });
