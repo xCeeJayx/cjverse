@@ -62,6 +62,8 @@ describe('Game Server Combat Loop & Room Hydration', () => {
     room.activeCardId = room.p1Cards[0].id;
     room.p1Cards[0].atk = 9999;
 
+    const broadcastSpy = vi.spyOn(manager, 'broadcast');
+
     manager.executeAction('test-room-win', room.player1Id, 'ULTIMATE', room.p2Cards[0].id);
     // Knock out other two
     manager.executeAction('test-room-win', room.player1Id, 'ULTIMATE', room.p2Cards[1].id);
@@ -69,5 +71,18 @@ describe('Game Server Combat Loop & Room Hydration', () => {
 
     expect(room.status).toBe('COMPLETED');
     expect(room.winnerId).toBe(room.player1Id);
+
+    // Verify MATCH_END broadcast
+    expect(broadcastSpy).toHaveBeenCalledWith(
+      'test-room-win',
+      expect.objectContaining({
+        type: 'MATCH_END',
+        payload: {
+          winnerId: room.player1Id,
+          loserId: room.player2Id,
+          crystalsAwarded: 50,
+        },
+      })
+    );
   });
 });

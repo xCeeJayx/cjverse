@@ -15,6 +15,24 @@ describe('Authoritative Room Lifecycle State Machine', () => {
     expect(room.status).toBe('IN_PROGRESS');
   });
 
+  it('auto-starts match immediately to IN_PROGRESS when Player 1 joins a bot room without waiting for Player 2', () => {
+    const manager = new RoomManager();
+    const room = manager.createRoom('room-bot', 'player-1', 'bot-ai-trainer');
+    expect(room.status).toBe('WAITING');
+
+    manager.connectPlayer('room-bot', 'player-1');
+    expect(room.status).toBe('IN_PROGRESS');
+  });
+
+  it('auto-starts practice match when Player 1 joins with BOT as player2Id', () => {
+    const manager = new RoomManager();
+    const room = manager.createRoom('room-bot-generic', 'player-1', 'BOT');
+    expect(room.status).toBe('WAITING');
+
+    manager.connectPlayer('room-bot-generic', 'dev-player-1');
+    expect(room.status).toBe('IN_PROGRESS');
+  });
+
   it('rejects unknown room IDs or unauthorized spectators joining as players', () => {
     const manager = new RoomManager();
     manager.createRoom('room-beta', 'p1', 'p2');

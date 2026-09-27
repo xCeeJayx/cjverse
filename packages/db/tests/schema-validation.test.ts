@@ -1,6 +1,6 @@
 // packages/db/tests/schema-validation.test.ts
 import { describe, it, expect } from 'vitest';
-import { users, cards, matchRooms, db } from '../src';
+import { users, cards, matchRooms, db, generateCardId } from '../src';
 import { getTableColumns } from 'drizzle-orm';
 
 describe('Drizzle Database Schema Definitions', () => {
@@ -16,14 +16,21 @@ describe('Drizzle Database Schema Definitions', () => {
     expect(cols).toHaveProperty('activeLineup');
   });
 
-  it('contains all required columns in cards table', () => {
+  it('contains all required columns in cards table with 6-character id support', () => {
     const cols = getTableColumns(cards);
+    expect(cols).toHaveProperty('id');
+    expect(cols.id.dataType).toBe('string');
     expect(cols).toHaveProperty('userId');
     expect(cols).toHaveProperty('race');
     expect(cols).toHaveProperty('variant');
     expect(cols).toHaveProperty('elementTier');
     expect(cols).toHaveProperty('powerScore');
     expect(cols).toHaveProperty('seed');
+
+    const testId = generateCardId();
+    expect(testId).toHaveLength(6);
+    expect(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/.test(testId)).toBe(true);
+    expect(testId).not.toContain('#');
   });
 
   it('contains status enum in matchRooms table', () => {

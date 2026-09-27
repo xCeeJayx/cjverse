@@ -20,7 +20,7 @@ vi.mock('@cjverse/db', async (importOriginal) => {
           onConflictDoNothing: vi.fn().mockResolvedValue([]),
           returning: vi.fn().mockResolvedValue([
             {
-              id: 'mock-card-uuid-123',
+              id: 'X7K9A2',
               userId: 'user-12345',
               race: 'dragon',
               variant: 'gold',
@@ -43,11 +43,14 @@ describe('Discord Bot /hunt Command Handler', () => {
     resetCooldowns();
   });
 
-  it('generates a new card and image buffer for caller', async () => {
+  it('generates a new card and image buffer for caller with 6-character card ID', async () => {
     const result = await handleHuntCommand('user-12345', 'HeroPlayer');
     expect(result.success).toBe(true);
     expect(result.card).toBeDefined();
-    expect(result.card?.id).toBe('mock-card-uuid-123');
+    expect(result.card?.id).toBe('X7K9A2');
+    expect(result.card?.id).toHaveLength(6);
+    expect(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/.test(result.card!.id!)).toBe(true);
+    expect(result.card?.id).not.toContain('#');
     expect(result.imageBuffer).toBeInstanceOf(Buffer);
   });
 

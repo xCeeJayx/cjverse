@@ -47,6 +47,24 @@ export const commands = [
   new SlashCommandBuilder()
     .setName('duel-bot')
     .setDescription('Practice a 3v3 duel against an AI bot with instant arena access'),
+  new SlashCommandBuilder()
+    .setName('upgrade')
+    .setDescription('Upgrade a card level using crystals (cost: level * 25 crystals)')
+    .addStringOption((opt) =>
+      opt
+        .setName('card_id')
+        .setDescription('Card ID or first 4-8 characters of UUID')
+        .setRequired(true)
+    ),
+  new SlashCommandBuilder()
+    .setName('evolve')
+    .setDescription('Evolve a card (Stage 1 -> 2 at Lv.10, Stage 2 -> 3 at Lv.20; cost: 200 crystals)')
+    .addStringOption((opt) =>
+      opt
+        .setName('card_id')
+        .setDescription('Card ID or first 4-8 characters of UUID')
+        .setRequired(true)
+    ),
 ].map((cmd) => cmd.toJSON());
 
 export async function deployCommands(): Promise<unknown> {

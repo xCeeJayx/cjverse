@@ -5,7 +5,7 @@ const { mockCards, mockState } = vi.hoisted(() => {
   return {
     mockCards: [
       {
-        id: 'aabbccdd-1122-3344-5566-778899aabbcc',
+        id: 'AABB22',
         userId: 'user-equip-test',
         race: 'dragon',
         variant: 'gold',
@@ -17,7 +17,7 @@ const { mockCards, mockState } = vi.hoisted(() => {
         seed: 1234,
       },
       {
-        id: '11223344-5566-7788-99aa-bbccddeeff00',
+        id: 'CCDD33',
         userId: 'user-equip-test',
         race: 'elf',
         variant: 'silver',
@@ -165,17 +165,18 @@ describe('Discord Bot /equip Command Handler', () => {
       }),
     });
 
-    const result = await handleEquipCommand('user-equip-test', 'vanguard', 'aabbcc');
+    const result = await handleEquipCommand('user-equip-test', 'vanguard', '#aabb22');
     expect(result.success).toBe(true);
     expect(result.slot).toBe('vanguard');
-    expect(result.lineup?.vanguardCardId).toBe('aabbccdd-1122-3344-5566-778899aabbcc');
+    expect(result.lineup?.vanguardCardId).toBe('AABB22');
     expect(result.embedData?.vanguardCardName).toContain('DRAGON');
+    expect(result.embedData?.vanguardCardName).not.toContain('#');
   });
 
   it('reassigns cleanly if card is already equipped in another slot', async () => {
     // Initially card is in vanguard
     mockState.mockUserLineup = {
-      vanguardCardId: 'aabbccdd-1122-3344-5566-778899aabbcc',
+      vanguardCardId: 'AABB22',
       strikerCardId: null,
       conduitCardId: null,
     };
@@ -194,12 +195,12 @@ describe('Discord Bot /equip Command Handler', () => {
       }),
     });
 
-    // Equip the same dragon into striker slot
-    const result = await handleEquipCommand('user-equip-test', 'striker', 'aabb');
+    // Equip the same dragon into striker slot with prefix and without hashtag
+    const result = await handleEquipCommand('user-equip-test', 'striker', 'aabb22');
     expect(result.success).toBe(true);
     expect(result.slot).toBe('striker');
     // Vanguard should now be cleared, striker should have the dragon
     expect(result.lineup?.vanguardCardId).toBeNull();
-    expect(result.lineup?.strikerCardId).toBe('aabbccdd-1122-3344-5566-778899aabbcc');
+    expect(result.lineup?.strikerCardId).toBe('AABB22');
   });
 });

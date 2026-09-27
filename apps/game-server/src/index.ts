@@ -41,19 +41,31 @@ export function createGameServer(port = Number(process.env.GAME_SERVER_PORT || 8
           }
 
           currentRoomId = roomId;
-          currentUserId = userId || 'dev-player-1';
 
           // Hydrate room from database if not cached
-          const room = await roomManager.hydrateRoomFromDb(roomId, currentUserId);
+          const room = await roomManager.hydrateRoomFromDb(roomId, userId);
 
           // If userId was not specified, match to available slot (player1 or player2)
-          if (!userId) {
-            currentUserId = room.connectedPlayers.has(room.player1Id) ? room.player2Id : room.player1Id;
+          let effectiveUserId = userId;
+          if (!effectiveUserId) {
+            effectiveUserId =
+              room.connectedPlayers.has(room.player1Id) && !roomManager.getRoom(roomId)?.player2Id?.startsWith('bot')
+                ? room.player2Id
+                : room.player1Id;
           }
 
+          // Map dev aliases (?as=p1 or ?as=dev-player-1) to canonical room player slots
+          if (effectiveUserId === 'dev-player-1' || effectiveUserId === 'p1') {
+            effectiveUserId = room.player1Id;
+          } else if (effectiveUserId === 'dev-player-2' || effectiveUserId === 'p2') {
+            effectiveUserId = room.player2Id;
+          }
+
+          currentUserId = effectiveUserId;
+
           try {
-            roomManager.connectPlayer(roomId, currentUserId!);
-            roomManager.setSocket(roomId, currentUserId!, ws);
+            roomManager.connectPlayer(roomId, currentUserId);
+            roomManager.setSocket(roomId, currentUserId, ws);
 
             const state = roomManager.getRoomState(roomId);
             // Send initial ROOM_STATE directly to connecting client
@@ -67,14 +79,19 @@ export function createGameServer(port = Number(process.env.GAME_SERVER_PORT || 8
           return;
         }
 
-        if (msg.type === 'EXECUTE_ACTION') {
+        if (msg.type === 'EXECUTE_ACTION' || msg.type === 'PLAYER_ACTION') {
           if (!currentRoomId || !currentUserId) {
             ws.send(JSON.stringify({ type: 'ERROR', payload: { message: 'Not connected to any active room' } }));
             return;
           }
 
-          const actionType = msg.payload?.actionType || 'BASIC_ATTACK';
-          const targetCardId = msg.payload?.targetCardId;
+          const actionType =
+            (msg as any).action ||
+            msg.payload?.actionType ||
+            'BASIC_ATTACK';
+          const targetCardId =
+            (msg as any).targetCardId ||
+            msg.payload?.targetCardId;
 
           roomManager.executeAction(currentRoomId, currentUserId, actionType, targetCardId);
           return;

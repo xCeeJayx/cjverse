@@ -1,3 +1,9 @@
+export interface MatchEndData {
+  winnerId: string;
+  loserId: string;
+  crystalsAwarded: number;
+}
+
 export interface ArenaState {
   status: string;
   activeCardId: string | null;
@@ -7,6 +13,7 @@ export interface ArenaState {
   winnerId?: string | null;
   combatLog?: string[];
   lastAction?: any;
+  matchEnd?: MatchEndData | null;
 }
 
 export class ArenaController {
@@ -38,6 +45,19 @@ export class ArenaController {
         ...this.state,
         lastAction: msg.payload,
         combatLog: logs,
+      };
+    } else if (msg.type === 'TIMER_TICK') {
+      this.state = {
+        ...this.state,
+        timeRemaining: msg.payload?.timeRemaining ?? this.state.timeRemaining,
+        activeCardId: msg.payload?.activeCardId !== undefined ? msg.payload.activeCardId : this.state.activeCardId,
+      };
+    } else if (msg.type === 'MATCH_END') {
+      this.state = {
+        ...this.state,
+        status: 'COMPLETED',
+        winnerId: msg.payload?.winnerId,
+        matchEnd: msg.payload,
       };
     }
   }

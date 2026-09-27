@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { db, users, cards, matchRooms, UserActiveLineup, CardRecord, eq } from '@cjverse/db';
-import { generateCardFromSeed } from '@cjverse/game-logic';
+import { generateCardFromSeed, generateCardId } from '@cjverse/game-logic';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -261,9 +261,11 @@ export async function handleDuelBotCommand(
       while (cardIds.length < 3) {
         const seed = 5000 + cardIds.length * 100;
         const gen = generateCardFromSeed(seed, 1);
+        const botCardId = generateCardId();
         const [saved] = (await db
           .insert(cards)
           .values({
+            id: botCardId,
             userId: botUserId,
             race: gen.race,
             variant: gen.variant,

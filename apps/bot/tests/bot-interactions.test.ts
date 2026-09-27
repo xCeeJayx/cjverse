@@ -30,6 +30,8 @@ describe('Discord Bot Interaction Handler Runtime', () => {
     const callArg = editReplyMock.mock.calls[0][0];
     expect(callArg.embeds).toBeDefined();
     expect(callArg.files).toBeDefined();
+    const desc = callArg.embeds[0].data.description;
+    expect(desc).not.toContain('#');
   });
 
   it('calls deferReply immediately before running hunt generator or db queries', async () => {
@@ -160,4 +162,73 @@ describe('Discord Bot Interaction Handler Runtime', () => {
     expect(deferReplyMock).toHaveBeenCalledOnce();
     expect(editReplyMock).toHaveBeenCalledOnce();
   });
+
+  it('handles /upgrade command interaction with deferReply and editReply', async () => {
+    let deferred = false;
+    const deferReplyMock = vi.fn().mockImplementation(async () => {
+      deferred = true;
+    });
+    const editReplyMock = vi.fn().mockResolvedValue(undefined);
+
+    const mockInteraction: any = {
+      commandName: 'upgrade',
+      user: {
+        id: 'user-upgrade-test',
+        username: 'UpgradeTester',
+      },
+      options: {
+        getString: vi.fn().mockImplementation((opt: string) => {
+          if (opt === 'card_id') return 'non-existent-card';
+          return null;
+        }),
+      },
+      get deferred() {
+        return deferred;
+      },
+      deferReply: deferReplyMock,
+      editReply: editReplyMock,
+    };
+
+    await handleInteraction(mockInteraction);
+
+    expect(deferReplyMock).toHaveBeenCalledOnce();
+    expect(editReplyMock).toHaveBeenCalledOnce();
+    const callArg = editReplyMock.mock.calls[0][0];
+    expect(callArg).toContain('Upgrade Failed');
+  });
+
+  it('handles /evolve command interaction with deferReply and editReply', async () => {
+    let deferred = false;
+    const deferReplyMock = vi.fn().mockImplementation(async () => {
+      deferred = true;
+    });
+    const editReplyMock = vi.fn().mockResolvedValue(undefined);
+
+    const mockInteraction: any = {
+      commandName: 'evolve',
+      user: {
+        id: 'user-evolve-test',
+        username: 'EvolveTester',
+      },
+      options: {
+        getString: vi.fn().mockImplementation((opt: string) => {
+          if (opt === 'card_id') return 'non-existent-card';
+          return null;
+        }),
+      },
+      get deferred() {
+        return deferred;
+      },
+      deferReply: deferReplyMock,
+      editReply: editReplyMock,
+    };
+
+    await handleInteraction(mockInteraction);
+
+    expect(deferReplyMock).toHaveBeenCalledOnce();
+    expect(editReplyMock).toHaveBeenCalledOnce();
+    const callArg = editReplyMock.mock.calls[0][0];
+    expect(callArg).toContain('Evolution Failed');
+  });
 });
+

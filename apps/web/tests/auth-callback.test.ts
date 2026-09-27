@@ -1,6 +1,7 @@
 // apps/web/tests/auth-callback.test.ts
 import { describe, it, expect, vi } from 'vitest';
-import { exchangeCodeForUser, GET } from '../src/app/api/auth/callback/route';
+import { GET } from '../src/app/api/auth/callback/route';
+import { exchangeCodeForUser } from '../src/lib/oauth';
 import { validateSessionToken } from '../src/lib/auth-session';
 
 describe('Discord OAuth2 Web Callback Route', () => {

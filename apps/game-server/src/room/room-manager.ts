@@ -1,5 +1,5 @@
 import { db, matchRooms, users, cards, UserActiveLineup, eq, inArray } from '@cjverse/db';
-import { calculateStats, generateCardFromSeed } from '@cjverse/game-logic';
+import { calculateStats, generateCardFromSeed, generateCardId } from '@cjverse/game-logic';
 import { InitiativeClock, CombatCardState } from '../engine/initiative-clock';
 import { resolveAction } from '../engine/action-resolver';
 import { determineFallbackAction } from '../engine/auto-battle';
@@ -50,6 +50,18 @@ export interface GameRoom {
   sockets: Map<string, any>;
 }
 
+export function isBotPlayer(playerId?: string | null): boolean {
+  if (!playerId) return false;
+  const upper = playerId.toUpperCase();
+  return (
+    upper === 'BOT' ||
+    upper === 'BOT-AI-TRAINER' ||
+    upper.startsWith('BOT') ||
+    upper.includes('TRAINER') ||
+    upper.includes('AI')
+  );
+}
+
 export class RoomManager {
   private rooms = new Map<string, GameRoom>();
 
@@ -83,14 +95,18 @@ export class RoomManager {
       throw new Error(`Room ${roomId} not found`);
     }
 
+    const isBotOpponent = isBotPlayer(room.player2Id);
+
     // In local dev/practice mode, allow dev-player-1 / dev-player-2 or bot
     const isAuthorized =
       playerId === room.player1Id ||
       playerId === room.player2Id ||
       playerId.startsWith('dev-player') ||
+      playerId === 'p1' ||
+      playerId === 'p2' ||
       room.player1Id.startsWith('dev-player') ||
       room.player2Id.startsWith('dev-player') ||
-      room.player2Id === 'bot-ai-trainer';
+      isBotOpponent;
 
     if (!isAuthorized) {
       throw new Error('Unauthorized');
@@ -98,15 +114,39 @@ export class RoomManager {
 
     room.connectedPlayers.add(playerId);
 
-    // If opponent is AI bot or both players are connected, transition to IN_PROGRESS
-    const isBotOpponent = room.player2Id === 'bot-ai-trainer';
+    // Map dev aliases to canonical room player slots
+    if (playerId === 'dev-player-1' || playerId === 'p1') {
+      room.connectedPlayers.add(room.player1Id);
+    } else if (playerId === 'dev-player-2' || playerId === 'p2') {
+      room.connectedPlayers.add(room.player2Id);
+    }
+
+    // If opponent is a bot (or practice match), do not wait for a second WebSocket connection.
+    // Immediately transition room.status from 'WAITING' to 'IN_PROGRESS'.
     const bothHumansJoined =
       room.connectedPlayers.has(room.player1Id) && room.connectedPlayers.has(room.player2Id);
 
-    if (bothHumansJoined || (isBotOpponent && room.connectedPlayers.has(room.player1Id))) {
+    if (
+      bothHumansJoined ||
+      (isBotOpponent && (room.connectedPlayers.has(room.player1Id) || room.connectedPlayers.size >= 1))
+    ) {
       room.status = 'IN_PROGRESS';
       if (!room.turnTimer && room.activeCardId) {
         this.startTurnCountdown(roomId);
+      }
+
+      // Start initiative clock immediately and broadcast updated ROOM_STATE with status: 'IN_PROGRESS'
+      this.broadcast(roomId, {
+        type: 'ROOM_STATE',
+        payload: this.getRoomState(roomId)!,
+      });
+
+      // When it is the bot's active turn, trigger AutoBattleEngine after a brief natural delay (1000ms)
+      const active = [...room.p1Cards, ...room.p2Cards].find((c) => c.id === room.activeCardId);
+      if (active && (isBotPlayer(active.playerId) || room.autoBattlePlayers.has(active.playerId))) {
+        setTimeout(() => {
+          this.executeAutoAction(roomId, active.playerId);
+        }, 1000);
       }
     }
 
@@ -257,7 +297,7 @@ export class RoomManager {
             const generated = generateCardFromSeed(defaultSeedBase + idx, 1);
             const stats = calculateStats(generated);
             return {
-              id: `gen-${playerId}-${role}-${idx}`,
+              id: generateCardId(),
               name: `${generated.variant.toUpperCase()} ${generated.race.toUpperCase()}`,
               role,
               race: generated.race,
@@ -289,7 +329,7 @@ export class RoomManager {
       const generated = generateCardFromSeed(defaultSeedBase + idx, 1);
       const stats = calculateStats(generated);
       return {
-        id: `gen-${playerId}-${role}-${idx}`,
+        id: generateCardId(),
         name: `${generated.variant.toUpperCase()} ${generated.race.toUpperCase()}`,
         role,
         race: generated.race,
@@ -326,14 +366,7 @@ export class RoomManager {
     const p2Alive = room.p2Cards.some((c) => c.isAlive && c.currentHp > 0);
 
     if (!p1Alive || !p2Alive) {
-      room.status = 'COMPLETED';
-      room.winnerId = p1Alive ? room.player1Id : room.player2Id;
-      if (broadcastUpdate) {
-        this.broadcast(roomId, {
-          type: 'ROOM_STATE',
-          payload: this.getRoomState(roomId)!,
-        });
-      }
+      this.handleMatchConclusion(roomId, p1Alive);
       return this.getRoomState(roomId);
     }
 
@@ -356,6 +389,9 @@ export class RoomManager {
     }
 
     room.timeRemaining = 15;
+    if (room.initiativeClock) {
+      room.initiativeClock.resetTimer(15);
+    }
 
     if (room.status === 'IN_PROGRESS') {
       this.startTurnCountdown(roomId);
@@ -369,12 +405,12 @@ export class RoomManager {
       });
     }
 
-    // Auto-attack for bot opponent or players with auto enabled
+    // Auto-attack for bot opponent or players with auto enabled (natural 1000ms delay)
     const active = [...room.p1Cards, ...room.p2Cards].find((c) => c.id === room.activeCardId);
-    if (active && (active.playerId === 'bot-ai-trainer' || room.autoBattlePlayers.has(active.playerId))) {
+    if (active && (isBotPlayer(active.playerId) || room.autoBattlePlayers.has(active.playerId))) {
       setTimeout(() => {
         this.executeAutoAction(roomId, active.playerId);
-      }, 700);
+      }, 1000);
     }
 
     return state;
@@ -386,31 +422,54 @@ export class RoomManager {
 
     if (room.turnTimer) {
       clearInterval(room.turnTimer);
+      room.turnTimer = null;
     }
 
     room.turnTimer = setInterval(() => {
       const r = this.rooms.get(roomId);
       if (!r || r.status !== 'IN_PROGRESS') {
-        if (r?.turnTimer) clearInterval(r.turnTimer);
+        if (r?.turnTimer) {
+          clearInterval(r.turnTimer);
+          r.turnTimer = null;
+        }
         return;
       }
 
       r.timeRemaining -= 1;
+      if (r.initiativeClock) {
+        r.initiativeClock.decrementTimer();
+      }
+
+      // Actively broadcast TIMER_TICK to all room sockets every second while status === 'IN_PROGRESS'
+      this.broadcast(roomId, {
+        type: 'TIMER_TICK',
+        payload: {
+          timeRemaining: r.timeRemaining,
+          activeCardId: r.activeCardId,
+        },
+      });
+
+      // Broadcast periodic updated room state
+      this.broadcast(roomId, {
+        type: 'ROOM_STATE',
+        payload: this.getRoomState(roomId)!,
+      });
 
       if (r.timeRemaining <= 0) {
         clearInterval(r.turnTimer!);
         r.turnTimer = null;
-        // Turn timer expired: execute fallback AI attack
+
+        // When the 15-second timer reaches 0, invoke ActionResolver to force an automatic basic attack
+        // for whoever's turn is active, advance the turn, and reset the clock to 15 seconds.
         const active = [...r.p1Cards, ...r.p2Cards].find((c) => c.id === r.activeCardId);
         if (active) {
-          this.executeAutoAction(roomId, active.playerId);
+          const enemyTeam = active.playerId === r.player1Id ? r.p2Cards : r.p1Cards;
+          const aliveEnemies = enemyTeam.filter((c) => c.isAlive && c.currentHp > 0);
+          const target = aliveEnemies[0];
+          if (target) {
+            this.executeAction(roomId, active.playerId, 'BASIC_ATTACK', target.id);
+          }
         }
-      } else {
-        // Broadcast periodic timer tick
-        this.broadcast(roomId, {
-          type: 'ROOM_STATE',
-          payload: this.getRoomState(roomId)!,
-        });
       }
     }, 1000);
   }
@@ -420,12 +479,12 @@ export class RoomManager {
     if (!room || room.status !== 'IN_PROGRESS') return;
 
     const active = [...room.p1Cards, ...room.p2Cards].find((c) => c.id === room.activeCardId);
-    if (!active || active.playerId !== playerId) return;
+    if (!active || (active.playerId !== playerId && !isBotPlayer(playerId))) return;
 
     const enemyTeam = active.playerId === room.player1Id ? room.p2Cards : room.p1Cards;
     const fallback = determineFallbackAction(active, enemyTeam);
 
-    this.executeAction(roomId, playerId, fallback.actionType, fallback.targetCardId);
+    this.executeAction(roomId, active.playerId, fallback.actionType, fallback.targetCardId);
   }
 
   executeAction(
@@ -474,33 +533,94 @@ export class RoomManager {
     const p1Alive = room.p1Cards.some((c) => c.isAlive && c.currentHp > 0);
     const p2Alive = room.p2Cards.some((c) => c.isAlive && c.currentHp > 0);
 
-    if (!p1Alive || !p2Alive) {
-      room.status = 'COMPLETED';
-      room.winnerId = p1Alive ? room.player1Id : room.player2Id;
-      const winnerName = p1Alive ? 'Player 1' : 'Player 2';
-      room.combatLog.push(`🏆 ${winnerName} has won the duel!`);
-    }
-
     // Broadcast ACTION_RESOLVED
     this.broadcast(roomId, {
       type: 'ACTION_RESOLVED',
       payload: resolved,
     });
 
-    // Advance clock to next turn if match still ongoing
-    if (room.status === 'IN_PROGRESS') {
-      this.advanceTurn(roomId, true);
+    if (!p1Alive || !p2Alive) {
+      this.handleMatchConclusion(roomId, p1Alive);
     } else {
-      this.broadcast(roomId, {
-        type: 'ROOM_STATE',
-        payload: this.getRoomState(roomId)!,
-      });
+      // Advance clock to next turn if match still ongoing
+      this.advanceTurn(roomId, true);
     }
 
     return {
       resolved,
       state: this.getRoomState(roomId)!,
     };
+  }
+
+  async handleMatchConclusion(roomId: string, p1Alive: boolean): Promise<void> {
+    const room = this.rooms.get(roomId);
+    if (!room) return;
+
+    if (room.turnTimer) {
+      clearInterval(room.turnTimer);
+      room.turnTimer = null;
+    }
+
+    room.status = 'COMPLETED';
+    const winnerId = p1Alive ? room.player1Id : room.player2Id;
+    const loserId = p1Alive ? room.player2Id : room.player1Id;
+    room.winnerId = winnerId;
+
+    const winnerName = p1Alive ? 'Player 1' : 'Player 2';
+    room.combatLog.push(`🏆 ${winnerName} has won the duel!`);
+
+    const crystalsAwarded = 50;
+
+    // 1. Broadcast MATCH_END WebSocket payload containing { winnerId, loserId, crystalsAwarded: 50 }
+    this.broadcast(roomId, {
+      type: 'MATCH_END',
+      payload: {
+        winnerId,
+        loserId,
+        crystalsAwarded,
+      },
+    });
+
+    // 2. Broadcast updated ROOM_STATE with COMPLETED status
+    this.broadcast(roomId, {
+      type: 'ROOM_STATE',
+      payload: this.getRoomState(roomId)!,
+    });
+
+    // 3. Award 50 crystals to the winning player in users.crystals via Supabase update (if registered, not BOT)
+    let validWinnerId: string | null = null;
+    if (winnerId && !isBotPlayer(winnerId) && !winnerId.startsWith('dev-player')) {
+      try {
+        const [winnerRecord] = await db
+          .select({ id: users.id, crystals: users.crystals })
+          .from(users)
+          .where(eq(users.id, winnerId))
+          .limit(1);
+
+        if (winnerRecord) {
+          validWinnerId = winnerRecord.id;
+          await db
+            .update(users)
+            .set({ crystals: (winnerRecord.crystals || 0) + crystalsAwarded })
+            .where(eq(users.id, winnerId));
+        }
+      } catch (err) {
+        console.warn(`[RoomManager] Failed to award crystals to winner ${winnerId}:`, err);
+      }
+    }
+
+    // 4. Update match_rooms in Supabase: set status = 'COMPLETED' and winnerId = winnerId
+    try {
+      await db
+        .update(matchRooms)
+        .set({
+          status: 'COMPLETED',
+          winnerId: validWinnerId,
+        })
+        .where(eq(matchRooms.id, roomId));
+    } catch (err) {
+      console.warn(`[RoomManager] Failed to update match_rooms for ${roomId}:`, err);
+    }
   }
 
   toggleAuto(roomId: string, playerId: string): boolean {

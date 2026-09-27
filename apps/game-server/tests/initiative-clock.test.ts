@@ -29,4 +29,18 @@ describe('Turn Order Initiative Clock (0-100 gauge)', () => {
     const result = clock.tick();
     expect(result.activeCard).toBeNull();
   });
+
+  it('manages 15-second turn timer countdown and reset', () => {
+    const cards: CombatCardState[] = [
+      { id: 'card-1', playerId: 'p1', spd: 30, initiative: 0, isAlive: true }
+    ];
+    const clock = new InitiativeClock(cards);
+    expect(clock.getTimeRemaining()).toBe(15);
+
+    clock.decrementTimer();
+    expect(clock.getTimeRemaining()).toBe(14);
+
+    clock.resetTimer(15);
+    expect(clock.getTimeRemaining()).toBe(15);
+  });
 });

@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
-import { generateCardFromSeed, CardEntity } from '@cjverse/game-logic';
+import { generateCardFromSeed, generateCardId, CardEntity } from '@cjverse/game-logic';
 import { renderCardComposite } from '@cjverse/asset-pipeline';
 import { db, users, cards, CardRecord, eq } from '@cjverse/db';
 import { checkAndSetCooldown, resetCooldowns } from '../services/cooldown';
@@ -53,13 +53,16 @@ export async function handleHuntCommand(userId: string, username: string): Promi
   // 2. Generate procedural card from random seed
   const seed = Math.floor(Math.random() * 1_000_000_000);
   const card = generateCardFromSeed(seed);
+  const cardId = generateCardId();
+  card.id = cardId;
 
-  // 3. Insert card into PostgreSQL database
+  // 3. Insert card into PostgreSQL database with 6-character alphanumeric ID
   let savedCard: CardEntity | CardRecord = card;
   try {
     const [persistedCard] = (await db
       .insert(cards)
       .values({
+        id: cardId,
         userId,
         race: card.race,
         variant: card.variant,

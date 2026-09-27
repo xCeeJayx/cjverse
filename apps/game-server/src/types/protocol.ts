@@ -33,12 +33,33 @@ export interface RoomStatePayload {
   combatLog?: string[];
 }
 
+export interface TimerTickPayload {
+  timeRemaining: number;
+  activeCardId?: string | null;
+}
+
+export interface MatchEndPayload {
+  winnerId: string;
+  loserId: string;
+  crystalsAwarded: number;
+}
+
 export type WebSocketClientMessage =
   | { type: 'JOIN_ROOM'; roomId?: string; userId?: string; payload?: JoinRoomPayload }
   | { type: 'EXECUTE_ACTION'; payload: ExecuteActionPayload }
+  | {
+      type: 'PLAYER_ACTION';
+      roomId?: string;
+      action?: ActionType;
+      targetCardId?: string;
+      payload?: ExecuteActionPayload;
+    }
   | { type: 'TOGGLE_AUTO'; payload?: { enabled?: boolean } };
 
 export type WebSocketServerMessage =
   | { type: 'ROOM_STATE'; payload: RoomStatePayload }
   | { type: 'ACTION_RESOLVED'; payload: ActionResolvedPayload }
+  | { type: 'TIMER_TICK'; payload: TimerTickPayload }
+  | { type: 'MATCH_END'; payload: MatchEndPayload }
+  | { type: 'AUTO_TOGGLED'; payload: { isAuto: boolean } }
   | { type: 'ERROR'; payload: { message: string } };

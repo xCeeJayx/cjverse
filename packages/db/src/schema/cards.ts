@@ -1,5 +1,14 @@
-import { pgTable, text, integer, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp, varchar, jsonb } from 'drizzle-orm/pg-core';
 import { users } from './users';
+
+export function generateCardId(length = 6): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // Alphanumeric without ambiguous characters (0, O, 1, I)
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
 
 export interface CardAssetPaths {
   raceSlice: string;
@@ -8,7 +17,7 @@ export interface CardAssetPaths {
 }
 
 export const cards = pgTable('cards', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: varchar('id', { length: 16 }).$defaultFn(() => generateCardId()).primaryKey(),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   race: text('race').notNull(),
   variant: text('variant').notNull(),

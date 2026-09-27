@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { db, users, cards, UserActiveLineup, CardRecord, eq } from '@cjverse/db';
+import { resolveCardById, getCardNotFoundError } from '../services/card-resolver';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -60,18 +61,14 @@ export async function handleEquipCommand(
       };
     }
 
-    // 2. Find the requested card by checking card.id (prefix or full match)
-    const cleanPrefix = cardIdPrefix.trim().toLowerCase().replace(/^#/, '');
-    const targetCard = userCards.find((c) => {
-      const id = c.id.toLowerCase();
-      return id === cleanPrefix || id.startsWith(cleanPrefix);
-    });
+    // 2. Find the requested card by checking card.id (sanitized, case-insensitive)
+    const targetCard = resolveCardById(userCards, cardIdPrefix);
 
     // 3. Return an error if card is not found or does not belong to user
     if (!targetCard) {
       return {
         success: false,
-        error: `Card matching "${cardIdPrefix}" was not found in your inventory. Use \`/inventory\` to view your card IDs.`,
+        error: getCardNotFoundError(cardIdPrefix),
       };
     }
 
@@ -110,8 +107,8 @@ export async function handleEquipCommand(
     const getCardLabel = (cardId: string | null) => {
       if (!cardId) return '*[Empty Slot]*';
       const found = userCards.find((c) => c.id === cardId);
-      if (!found) return `\`#${cardId.slice(0, 8)}\``;
-      return `\`#${found.id.slice(0, 8)}\` **${found.variant.toUpperCase()} ${found.race.toUpperCase()}** (${found.element}, Power: ${found.powerScore})`;
+      if (!found) return `\`${cardId}\``;
+      return `\`${found.id}\` **${found.variant.toUpperCase()} ${found.race.toUpperCase()}** (${found.element}, Power: ${found.powerScore})`;
     };
 
     return {

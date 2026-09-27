@@ -1,7 +1,6 @@
 import { CardEntity, Race, Variant, ElementTier } from '../types/card';
-import { RACE_BASE } from '../constants/races';
-import { VARIANT_MULTIPLIERS } from '../constants/variants';
-import { ELEMENT_TO_TIER, ELEMENT_TIER_BONUS } from '../constants/elements';
+import { ELEMENT_TO_TIER } from '../constants/elements';
+import { calculatePowerScore } from '../calculator/stats';
 
 const RACES: Race[] = ['dragon', 'elf', 'human', 'dwarf', 'orc', 'troll', 'goblin'];
 
@@ -14,6 +13,15 @@ const VARIANTS: { variant: Variant; weight: number }[] = [
 ];
 
 const ELEMENTS = Object.keys(ELEMENT_TO_TIER);
+
+export function generateCardId(length = 6): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // Alphanumeric without ambiguous characters (0, O, 1, I)
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
 
 export function generateCardFromSeed(seed: number, level = 1): CardEntity {
   const absSeed = Math.abs(Math.floor(seed));
@@ -40,15 +48,13 @@ export function generateCardFromSeed(seed: number, level = 1): CardEntity {
   const evolutionStage = 1;
   const clampedLevel = Math.max(1, Math.floor(level));
 
-  // Compute power score from base stats * variant + element bonus + level
-  const baseStats = RACE_BASE[race];
-  const variantMult = VARIANT_MULTIPLIERS[variant];
-  const elemBonus = ELEMENT_TIER_BONUS[elementTier];
-  const calculatedAtk = Math.floor((baseStats.atk * variantMult) + elemBonus + (clampedLevel * 15));
-  const calculatedHp = Math.floor((baseStats.hp * variantMult) + (clampedLevel * 75));
-  const calculatedDef = Math.floor((baseStats.def * variantMult) + (clampedLevel * 7.5));
-
-  const powerScore = Math.floor(calculatedAtk + (calculatedHp / 10) + calculatedDef);
+  const powerScore = calculatePowerScore({
+    race,
+    variant,
+    elementTier,
+    evolutionStage,
+    level: clampedLevel,
+  });
 
   return {
     seed: absSeed,

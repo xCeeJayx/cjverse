@@ -24,6 +24,8 @@ import {
 } from './commands/inventory';
 import { handleDuelCommand, handleDuelBotCommand } from './commands/duel';
 import { handleEquipCommand } from './commands/equip';
+import { handleUpgradeCommand } from './commands/upgrade';
+import { handleEvolveCommand } from './commands/evolve';
 
 // Safe environment variable loading from root and bot .env files
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -36,6 +38,9 @@ export * from './commands/hunt';
 export * from './commands/inventory';
 export * from './commands/duel';
 export * from './commands/equip';
+export * from './commands/upgrade';
+export * from './commands/evolve';
+export * from './services/card-resolver';
 export * from './deploy-commands';
 
 export const client = new Client({
@@ -127,10 +132,9 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
             .map((c, i) => {
               const tag = formatCardLineupTag(c.id, lineup);
               const tagStr = tag ? ` **${tag}**` : '';
-              const shortId = c.id ? `\`#${c.id.slice(0, 8)}\` ` : '';
               return (
-                `**${(result.currentPage! - 1) * 5 + i + 1}.** ${shortId}**${c.variant.toUpperCase()} ${c.race.toUpperCase()}**${tagStr}\n` +
-                `Element: ${c.element} (${c.elementTier}) | Power Score: ${c.powerScore}`
+                `**${(result.currentPage! - 1) * 5 + i + 1}.** **${c.variant.toUpperCase()} ${c.race.toUpperCase()}**${tagStr}\n` +
+                `> Element: ${c.element} | Power: ${c.powerScore} | ID: ${c.id}`
               );
             })
             .join('\n\n')
@@ -281,6 +285,118 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
           content: '❌ An error occurred while creating the practice duel.',
           ephemeral: true,
         }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'upgrade') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+    const cardId = interaction.options.getString('card_id', true);
+
+    try {
+      const result = await handleUpgradeCommand(interaction.user.id, cardId);
+
+      if (!result.success) {
+        const errMsg = `❌ **Upgrade Failed:** ${result.error}`;
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply(errMsg);
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply({ content: errMsg, ephemeral: true });
+        }
+        return;
+      }
+
+      const card = result.card!;
+      const embed = new EmbedBuilder()
+        .setTitle(`✨ Card Upgraded: ${card.variant.toUpperCase()} ${card.race.toUpperCase()}`)
+        .setDescription(
+          `**Card ID:** \`${card.id}\`\n` +
+          `**Element:** ${card.element} (${card.elementTier})\n\n` +
+          `📈 **Level:** Lv. ${result.oldLevel} ➔ **Lv. ${result.newLevel}**\n` +
+          `⚡ **Power Score:** ${result.oldPowerScore} ➔ **${result.newPowerScore}** (+${(result.newPowerScore ?? 0) - (result.oldPowerScore ?? 0)})\n\n` +
+          `**Stat Growth Breakdown:**\n` +
+          `• **HP:** ${result.oldStats?.maxHp} ➔ **${result.newStats?.maxHp}** (+${(result.newStats?.maxHp ?? 0) - (result.oldStats?.maxHp ?? 0)})\n` +
+          `• **ATK:** ${result.oldStats?.atk} ➔ **${result.newStats?.atk}** (+${(result.newStats?.atk ?? 0) - (result.oldStats?.atk ?? 0)})\n` +
+          `• **DEF:** ${result.oldStats?.def} ➔ **${result.newStats?.def}** (+${(result.newStats?.def ?? 0) - (result.oldStats?.def ?? 0)})\n\n` +
+          `💎 **Upgrade Cost:** -${result.cost} Crystals (Remaining: **${result.remainingCrystals}**)`
+        )
+        .setColor(0x00ff99);
+
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply({ embeds: [embed] });
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ embeds: [embed] });
+      }
+    } catch (err) {
+      console.error('[Upgrade Interaction Error]:', err);
+      const errFallback = '❌ An error occurred while upgrading your card.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(errFallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: errFallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'evolve') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+    const cardId = interaction.options.getString('card_id', true);
+
+    try {
+      const result = await handleEvolveCommand(interaction.user.id, cardId);
+
+      if (!result.success) {
+        const errMsg = `❌ **Evolution Failed:** ${result.error}`;
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply(errMsg);
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply({ content: errMsg, ephemeral: true });
+        }
+        return;
+      }
+
+      const card = result.card!;
+      const embed = new EmbedBuilder()
+        .setTitle(`🌟 Evolution Complete: ${card.variant.toUpperCase()} ${card.race.toUpperCase()}`)
+        .setDescription(
+          `**Card ID:** \`${card.id}\`\n` +
+          `**Element:** ${card.element} (${card.elementTier})\n\n` +
+          `🧬 **Evolution Stage:** ${result.oldStageName} (Stage ${result.oldStage}) ➔ **${result.newStageName} (Stage ${result.newStage})**\n` +
+          `⚡ **Power Score:** ${result.oldPowerScore} ➔ **${result.newPowerScore}** (+${(result.newPowerScore ?? 0) - (result.oldPowerScore ?? 0)})\n\n` +
+          `💎 **Evolution Cost:** -${result.cost} Crystals (Remaining: **${result.remainingCrystals}**)`
+        )
+        .setColor(0x9b59b6);
+
+      if (result.imageBuffer) {
+        const attachment = new AttachmentBuilder(result.imageBuffer, {
+          name: `evolved-${card.race}-${card.variant}.png`,
+        });
+        embed.setImage(`attachment://${attachment.name}`);
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply({ embeds: [embed], files: [attachment] });
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply({ embeds: [embed], files: [attachment] });
+        }
+      } else {
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply({ embeds: [embed] });
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply({ embeds: [embed] });
+        }
+      }
+    } catch (err) {
+      console.error('[Evolve Interaction Error]:', err);
+      const errFallback = '❌ An error occurred while evolving your card.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(errFallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: errFallback, ephemeral: true }).catch(() => {});
       }
     }
     return;

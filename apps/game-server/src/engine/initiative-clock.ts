@@ -8,6 +8,7 @@ export interface CombatCardState {
 
 export class InitiativeClock {
   private cards: CombatCardState[];
+  private timeRemaining: number = 15;
 
   constructor(cards: CombatCardState[]) {
     this.cards = cards;
@@ -25,5 +26,19 @@ export class InitiativeClock {
     }
 
     return { activeCard: null };
+  }
+
+  getTimeRemaining(): number {
+    return this.timeRemaining;
+  }
+
+  resetTimer(seconds: number = 15): number {
+    this.timeRemaining = seconds;
+    return this.timeRemaining;
+  }
+
+  decrementTimer(): number {
+    this.timeRemaining = Math.max(0, this.timeRemaining - 1);
+    return this.timeRemaining;
   }
 }
