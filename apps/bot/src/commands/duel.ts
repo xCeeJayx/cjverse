@@ -10,7 +10,8 @@ export function handleDuelCommand(
   targetId: string,
   isTargetBot: boolean,
   challengerLineupComplete: boolean,
-  targetLineupComplete: boolean
+  targetLineupComplete: boolean,
+  baseUrl: string = 'https://cjverse.me'
 ): DuelResult {
   if (challengerId === targetId) {
     return {
@@ -42,7 +43,8 @@ export function handleDuelCommand(
 
   // Generate unique room ID
   const roomId = Math.random().toString(36).substring(2, 10);
-  const arenaUrl = `https://cjverse.me/duel/${roomId}`;
+  const cleanBase = baseUrl.replace(/\/+$/, '');
+  const arenaUrl = `${cleanBase}/duel/${roomId}`;
 
   return {
     success: true,

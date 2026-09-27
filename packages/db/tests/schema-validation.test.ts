@@ -1,9 +1,13 @@
 // packages/db/tests/schema-validation.test.ts
 import { describe, it, expect } from 'vitest';
-import { users, cards, matchRooms } from '../src';
+import { users, cards, matchRooms, db } from '../src';
 import { getTableColumns } from 'drizzle-orm';
 
 describe('Drizzle Database Schema Definitions', () => {
+  it('exports active drizzle db client', () => {
+    expect(db).toBeDefined();
+    expect(db.query).toBeDefined();
+  });
   it('contains all required columns in users table', () => {
     const cols = getTableColumns(users);
     expect(cols).toHaveProperty('id');
