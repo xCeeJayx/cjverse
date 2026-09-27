@@ -2,6 +2,21 @@ export interface DiscordUser {
   id: string;
   username: string;
   avatar?: string | null;
+  global_name?: string | null;
+  avatarUrl?: string;
+}
+
+export function getDiscordAvatarUrl(userId: string, avatarHash?: string | null): string {
+  if (avatarHash) {
+    const ext = avatarHash.startsWith('a_') ? 'gif' : 'png';
+    return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.${ext}`;
+  }
+  try {
+    const idx = (BigInt(userId) >> 22n) % 6n;
+    return `https://cdn.discordapp.com/embed/avatars/${idx}.png`;
+  } catch {
+    return 'https://cdn.discordapp.com/embed/avatars/0.png';
+  }
 }
 
 export async function exchangeCodeForUser(
@@ -45,5 +60,6 @@ export async function exchangeCodeForUser(
   }
 
   const userData = (await userRes.json()) as DiscordUser;
+  userData.avatarUrl = getDiscordAvatarUrl(userData.id, userData.avatar);
   return userData;
 }

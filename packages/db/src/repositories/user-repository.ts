@@ -31,9 +31,17 @@ export async function findUserById(userId: string): Promise<UserRecord | undefin
   return result[0];
 }
 
-export async function ensureUser(id: string, username: string): Promise<UserRecord> {
+export async function ensureUser(id: string, username: string, avatarUrl?: string | null): Promise<UserRecord> {
   const existing = await findUserById(id);
   if (existing) {
+    if (avatarUrl !== undefined && existing.avatarUrl !== avatarUrl) {
+      try {
+        await db.update(users).set({ avatarUrl }).where(eq(users.id, id));
+        existing.avatarUrl = avatarUrl;
+      } catch (err) {
+        console.warn(`[UserRepository] Failed to update avatar for ${id}:`, err);
+      }
+    }
     return existing;
   }
 
@@ -42,6 +50,7 @@ export async function ensureUser(id: string, username: string): Promise<UserReco
     .values({
       id,
       username,
+      avatarUrl: avatarUrl || null,
       crystals: 100,
       activeLineup: {
         vanguardCardId: null,
@@ -51,7 +60,10 @@ export async function ensureUser(id: string, username: string): Promise<UserReco
     })
     .onConflictDoUpdate({
       target: users.id,
-      set: { username },
+      set: {
+        username,
+        ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+      },
     })
     .returning();
 
@@ -67,7 +79,7 @@ export async function ensureUser(id: string, username: string): Promise<UserReco
   return {
     id,
     username,
-    avatarUrl: null,
+    avatarUrl: avatarUrl || null,
     crystals: 100,
     activeLineup: {
       vanguardCardId: null,
@@ -78,6 +90,6 @@ export async function ensureUser(id: string, username: string): Promise<UserReco
   };
 }
 
-export async function upsertUser(id: string, username: string): Promise<UserRecord> {
-  return ensureUser(id, username);
+export async function upsertUser(id: string, username: string, avatarUrl?: string | null): Promise<UserRecord> {
+  return ensureUser(id, username, avatarUrl);
 }

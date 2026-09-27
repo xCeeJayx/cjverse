@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSessionToken } from '../../../../lib/auth-session';
-import { exchangeCodeForUser, getDiscordAvatarUrl } from '../../../../lib/oauth';
+import { createSessionToken } from '../../../../../lib/auth-session';
+import { exchangeCodeForUser, getDiscordAvatarUrl } from '../../../../../lib/oauth';
 import { upsertUser } from '@cjverse/db';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -9,6 +9,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const state = url.searchParams.get('state');
   const error = url.searchParams.get('error');
 
+  // Resolve target return URL from state parameter
   let returnTo = '/';
   if (state) {
     try {
@@ -31,8 +32,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL(redirectTarget, request.url));
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`;
-  const redirectUri = `${baseUrl.replace(/\/+$/, '')}/api/auth/callback`;
+  const host = request.headers.get('host') || 'localhost:3000';
+  const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+  const redirectUri = `${baseUrl.replace(/\/+$/, '')}/api/auth/discord/callback`;
 
   try {
     const discordUser = await exchangeCodeForUser(code, redirectUri);
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
     return response;
@@ -70,4 +73,3 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL(redirectTarget, request.url));
   }
 }
-

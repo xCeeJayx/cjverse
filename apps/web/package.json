@@ -9,8 +9,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cjverse/game-logic": "workspace:*",
     "@cjverse/db": "workspace:*",
+    "@cjverse/game-logic": "workspace:*",
+    "jose": "^6.2.12",
     "next": "^14.2.15",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

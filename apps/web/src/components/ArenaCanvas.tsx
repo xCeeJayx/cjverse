@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { ArenaState } from '../lib/arena-controller';
+import { soundEngine } from '../lib/sound-engine';
 
 export interface ArenaCanvasProps {
   arenaState: ArenaState;
@@ -135,6 +136,16 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
         fontSize: 14,
         isCrit: true,
       });
+    }
+
+    // Play corresponding procedural combat sound effect
+    const actionType = action.actionType || (log.includes('ultimate') ? 'ULTIMATE' : log.includes('burst') ? 'ELEMENTAL_BURST' : 'BASIC_ATTACK');
+    if (actionType === 'ULTIMATE') {
+      soundEngine.playUltimate();
+    } else if (actionType === 'ELEMENTAL_BURST') {
+      soundEngine.playBurst();
+    } else {
+      soundEngine.playAttack();
     }
   }, [arenaState.lastAction, arenaState.p1.cards, arenaState.p2.cards]);
 
@@ -392,6 +403,7 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
   }, [arenaState, activeTargetId]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    soundEngine.unlock();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -424,13 +436,14 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
   };
 
   return (
-    <div className="relative w-full max-w-5xl flex justify-center">
+    <div className="relative w-full h-full max-h-full flex items-center justify-center">
       <canvas
         ref={canvasRef}
         width={800}
         height={450}
         onClick={handleCanvasClick}
-        className="rounded-2xl border border-slate-800 bg-slate-950 shadow-[0_0_40px_rgba(0,0,0,0.8)] cursor-crosshair w-full max-w-4xl"
+        className="rounded-2xl border border-slate-800 bg-slate-950 shadow-[0_0_40px_rgba(0,0,0,0.8)] cursor-crosshair max-w-full max-h-full object-contain"
+        style={{ aspectRatio: '16/9' }}
       />
     </div>
   );
