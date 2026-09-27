@@ -4,7 +4,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@cjverse/game-logic": "workspace:*"
+    "@cjverse/game-logic": "workspace:*",
+    "@napi-rs/canvas": "^1.0.9"
   },
   "devDependencies": {
     "typescript": "^5.5.0",
