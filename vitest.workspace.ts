@@ -1,6 +1,4 @@
-import { defineWorkspace } from 'vitest/config';
-
-export default defineWorkspace([
+export default [
   'packages/*',
   'apps/*',
   {
@@ -10,4 +8,4 @@ export default defineWorkspace([
       exclude: ['superpowers-main/**', '**/node_modules/**']
     }
   }
-]);
+];

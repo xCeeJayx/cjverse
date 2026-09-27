@@ -1,0 +1,20 @@
+import React from 'react';
+
+export const metadata = {
+  title: 'CJVerse - Fantasy Card Collection & Arena',
+  description: 'Real-time authoritative skirmish arena and card collection on cjverse.me'
+};
+
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className="bg-slate-950 text-slate-100 min-h-screen">
+        {children}
+      </body>
+    </html>
+  );
+}
