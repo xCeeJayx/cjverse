@@ -11,3 +11,20 @@ export interface BaseStats {
   spd: number;
   mana: number;
 }
+
+export interface CardEntity {
+  id?: string;
+  seed: number;
+  race: Race;
+  variant: Variant;
+  element: string;
+  elementTier: ElementTier;
+  evolutionStage: number;
+  level: number;
+  powerScore: number;
+  assetPaths?: {
+    raceSlice: string;
+    elementSlice: string;
+    frameSlice: string;
+  };
+}
