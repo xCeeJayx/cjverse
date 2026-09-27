@@ -72,16 +72,20 @@ describe('Game Server Combat Loop & Room Hydration', () => {
     expect(room.status).toBe('COMPLETED');
     expect(room.winnerId).toBe(room.player1Id);
 
-    // Verify MATCH_END broadcast
+    // Verify MATCH_END broadcast with crystals and Elo updates
     expect(broadcastSpy).toHaveBeenCalledWith(
       'test-room-win',
       expect.objectContaining({
         type: 'MATCH_END',
-        payload: {
+        payload: expect.objectContaining({
           winnerId: room.player1Id,
           loserId: room.player2Id,
           crystalsAwarded: 50,
-        },
+          winnerDelta: expect.any(Number),
+          loserDelta: expect.any(Number),
+          newWinnerRating: expect.any(Number),
+          newLoserRating: expect.any(Number),
+        }),
       })
     );
   });

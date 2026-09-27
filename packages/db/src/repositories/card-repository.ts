@@ -9,6 +9,11 @@ export async function findCardsByUserId(userId: string): Promise<CardRecord[]> {
   return db.select().from(cards).where(eq(cards.userId, userId));
 }
 
+export async function findCardById(cardId: string): Promise<CardRecord | undefined> {
+  const result = await db.select().from(cards).where(eq(cards.id, cardId)).limit(1);
+  return result[0];
+}
+
 export async function createCard(newCard: NewCard) {
   return db.insert(cards).values(newCard);
 }

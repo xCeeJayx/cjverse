@@ -522,6 +522,15 @@ function DuelRoomContent() {
               )}
             </button>
 
+            {/* Collection / Binder Navigation Button */}
+            <a
+              href="/collection"
+              title="Manage Lineup & Collection"
+              className="p-2 rounded-xl border bg-slate-900/80 border-slate-700/60 text-slate-300 hover:text-cyan-300 hover:bg-slate-800/80 hover:border-cyan-500/40 transition-all flex items-center justify-center text-xs"
+            >
+              🎴
+            </a>
+
             {/* Connection Status Indicator */}
             <div
               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black border transition-all ${
@@ -686,6 +695,8 @@ function DuelRoomContent() {
           isOpen={state.status === 'COMPLETED'}
           isWinner={isWinner}
           crystalsAwarded={state.matchEnd?.crystalsAwarded ?? 50}
+          ratingDelta={isWinner ? state.matchEnd?.winnerDelta : state.matchEnd?.loserDelta}
+          newRating={isWinner ? state.matchEnd?.newWinnerRating : state.matchEnd?.newLoserRating}
           winnerName={state.winnerId === state.p1?.id ? state.p1?.name : state.p2?.name}
           onRematch={handleRematch}
           onReturnToDiscord={() => {

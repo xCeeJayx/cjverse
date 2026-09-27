@@ -26,6 +26,7 @@ import { handleDuelCommand, handleDuelBotCommand } from './commands/duel';
 import { handleEquipCommand } from './commands/equip';
 import { handleUpgradeCommand } from './commands/upgrade';
 import { handleEvolveCommand } from './commands/evolve';
+import { handleLeaderboardCommand, formatMedal } from './commands/leaderboard';
 
 // Safe environment variable loading from root and bot .env files
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -40,6 +41,7 @@ export * from './commands/duel';
 export * from './commands/equip';
 export * from './commands/upgrade';
 export * from './commands/evolve';
+export * from './commands/leaderboard';
 export * from './services/card-resolver';
 export * from './deploy-commands';
 
@@ -397,6 +399,69 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
         await interaction.editReply(errFallback).catch(() => {});
       } else if (typeof interaction.reply === 'function') {
         await interaction.reply({ content: errFallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'leaderboard') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+    const category = interaction.options.getString('category') ?? 'rating';
+
+    try {
+      const result = await handleLeaderboardCommand(category);
+
+      const isRating = result.category === 'rating';
+      const title = isRating
+        ? '🏆 CJVerse Global Leaderboard (Rating / MMR)'
+        : '💎 CJVerse Wealth Leaderboard (Total Crystals)';
+
+      if (result.entries.length === 0) {
+        const emptyMsg = 'No duelist records found on the leaderboard yet!';
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply(emptyMsg);
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply(emptyMsg);
+        }
+        return;
+      }
+
+      const description = result.entries
+        .map((e) => {
+          const medal = formatMedal(e.rank);
+          const wRate =
+            e.wins + e.losses > 0
+              ? Math.round((e.wins / (e.wins + e.losses)) * 100)
+              : 0;
+          return (
+            `${medal} **${e.username}**\n` +
+            `> ⚡ Rating: **${e.rating} MMR** | Record: **${e.wins}W - ${e.losses}L** (${wRate}%) | 💎 **${e.crystals}**`
+          );
+        })
+        .join('\n\n');
+
+      const embed = new EmbedBuilder()
+        .setTitle(title)
+        .setDescription(description)
+        .setColor(isRating ? 0xf59e0b : 0x06b6d4)
+        .setFooter({
+          text: `Top ${result.entries.length} Duelists • Ranked by ${result.category.toUpperCase()}`,
+        });
+
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply({ embeds: [embed] });
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ embeds: [embed] });
+      }
+    } catch (err) {
+      console.error('[Leaderboard Command Error]:', err);
+      const fallback = '❌ Failed to fetch leaderboard rankings. Please try again.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
       }
     }
     return;

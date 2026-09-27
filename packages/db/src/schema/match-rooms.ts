@@ -8,5 +8,17 @@ export const matchRooms = pgTable('match_rooms', {
   status: text('status', { enum: ['WAITING', 'IN_PROGRESS', 'COMPLETED', 'ABORTED'] }).default('WAITING').notNull(),
   winnerId: text('winner_id').references(() => users.id),
   gameStateSnapshot: jsonb('game_state_snapshot'),
+  combatLogs: jsonb('combat_logs').$type<string[]>(),
+  summary: jsonb('summary').$type<{
+    winnerId?: string | null;
+    loserId?: string | null;
+    winnerDelta?: number;
+    loserDelta?: number;
+    crystalsWon?: number;
+    cardsUsed?: { p1?: string[]; p2?: string[] };
+    turnsCount?: number;
+    durationSeconds?: number;
+    completedAt?: string;
+  }>(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });

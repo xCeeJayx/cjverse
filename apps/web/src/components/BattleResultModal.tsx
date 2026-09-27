@@ -7,6 +7,8 @@ export interface BattleResultModalProps {
   isWinner: boolean;
   crystalsAwarded?: number;
   winnerName?: string;
+  ratingDelta?: number;
+  newRating?: number;
   onRematch: () => void;
   onReturnToDiscord?: () => void;
 }
@@ -16,6 +18,8 @@ export const BattleResultModal: React.FC<BattleResultModalProps> = ({
   isWinner,
   crystalsAwarded = 50,
   winnerName,
+  ratingDelta,
+  newRating,
   onRematch,
   onReturnToDiscord,
 }) => {
@@ -116,25 +120,41 @@ export const BattleResultModal: React.FC<BattleResultModalProps> = ({
             : 'All your combatants were defeated in battle! Regroup your lineup, forge card upgrades, and challenge again.'}
         </p>
 
-        {/* Reward or Consolation Card */}
-        <div className="mb-6 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-center gap-4 shadow-inner">
-          <span className="text-3xl animate-pulse">💎</span>
-          <div className="text-left">
-            <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-              {isWinner ? 'Victory Reward' : 'Match Settlement'}
+        {/* Reward & Rating Settlement Card */}
+        <div className="mb-6 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 grid grid-cols-2 gap-3 shadow-inner text-center">
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span className="text-2xl mb-1">💎</span>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Crystals</div>
+            <div className={`text-base font-black ${isWinner ? 'text-emerald-400' : 'text-slate-400'}`}>
+              {isWinner ? `+${crystalsAwarded}` : '+0'}
             </div>
-            <div className={`text-xl font-black ${isWinner ? 'text-emerald-400' : 'text-slate-400'}`}>
-              {isWinner ? `+${crystalsAwarded} Crystals Awarded!` : '+0 Crystals'}
+          </div>
+
+          <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span className="text-2xl mb-1">⚡</span>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">MMR Rating</div>
+            <div className={`text-base font-black ${isWinner ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {ratingDelta !== undefined
+                ? isWinner
+                  ? `+${ratingDelta}`
+                  : `-${ratingDelta}`
+                : isWinner
+                ? '+16'
+                : '-16'}{' '}
+              MMR
             </div>
+            {newRating !== undefined && (
+              <div className="text-[10px] text-slate-400 mt-0.5 font-mono">({newRating} Rating)</div>
+            )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           <button
             id="btn-rematch"
             onClick={onRematch}
-            className={`w-full py-4 px-6 font-black rounded-xl text-white shadow-xl transition active:scale-95 flex items-center justify-center gap-2.5 text-base tracking-wide ${
+            className={`w-full py-3.5 px-6 font-black rounded-xl text-white shadow-xl transition active:scale-95 flex items-center justify-center gap-2.5 text-base tracking-wide ${
               isWinner
                 ? 'bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 hover:from-amber-500 hover:to-yellow-400 shadow-amber-500/30'
                 : 'bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-500 shadow-rose-600/30'
@@ -143,10 +163,26 @@ export const BattleResultModal: React.FC<BattleResultModalProps> = ({
             ⚔️ Rematch in this Arena
           </button>
 
+          <a
+            id="btn-view-leaderboard"
+            href="/leaderboard"
+            className="w-full py-2.5 px-5 font-bold rounded-xl text-amber-300 hover:text-white bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 transition text-xs flex items-center justify-center gap-2"
+          >
+            🏆 View Global Leaderboard
+          </a>
+
+          <a
+            id="btn-view-collection"
+            href="/collection"
+            className="w-full py-2.5 px-5 font-bold rounded-xl text-cyan-300 hover:text-white bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/40 transition text-xs flex items-center justify-center gap-2"
+          >
+            🎴 Manage Lineup & Collection
+          </a>
+
           <button
             id="btn-return-discord"
             onClick={handleDiscordClick}
-            className="w-full py-3 px-6 font-bold rounded-xl text-slate-300 hover:text-white bg-[#5865F2]/20 hover:bg-[#5865F2]/40 border border-[#5865F2]/40 transition text-sm flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-5 font-bold rounded-xl text-slate-300 hover:text-white bg-[#5865F2]/20 hover:bg-[#5865F2]/40 border border-[#5865F2]/40 transition text-xs flex items-center justify-center gap-2"
           >
             💬 Return to Discord
           </button>

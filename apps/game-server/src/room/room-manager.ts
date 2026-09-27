@@ -1,5 +1,5 @@
 import { db, matchRooms, users, cards, UserActiveLineup, eq, inArray } from '@cjverse/db';
-import { calculateStats, generateCardFromSeed, generateCardId } from '@cjverse/game-logic';
+import { calculateStats, generateCardFromSeed, generateCardId, calculateElo } from '@cjverse/game-logic';
 import { InitiativeClock, CombatCardState } from '../engine/initiative-clock';
 import { resolveAction } from '../engine/action-resolver';
 import { determineFallbackAction } from '../engine/auto-battle';
@@ -48,6 +48,7 @@ export interface GameRoom {
   turnTimer?: NodeJS.Timeout | null;
   autoBattlePlayers: Set<string>;
   sockets: Map<string, any>;
+  turnsCount?: number;
 }
 
 export function isBotPlayer(playerId?: string | null): boolean {
@@ -80,6 +81,7 @@ export class RoomManager {
       combatLog: [],
       autoBattlePlayers: new Set<string>(),
       sockets: new Map(),
+      turnsCount: 0,
     };
     this.rooms.set(id, room);
     return room;
@@ -356,6 +358,8 @@ export class RoomManager {
     const room = this.rooms.get(roomId);
     if (!room || !room.initiativeClock) return null;
 
+    room.turnsCount = (room.turnsCount || 0) + 1;
+
     if (room.turnTimer) {
       clearInterval(room.turnTimer);
       room.turnTimer = null;
@@ -570,52 +574,139 @@ export class RoomManager {
     room.combatLog.push(`🏆 ${winnerName} has won the duel!`);
 
     const crystalsAwarded = 50;
+    const isBotMatch = isBotPlayer(winnerId) || isBotPlayer(loserId);
 
-    // 1. Broadcast MATCH_END WebSocket payload containing { winnerId, loserId, crystalsAwarded: 50 }
+    // 1. Fetch user records for winner and loser from DB
+    let winnerRating = 1000;
+    let winnerWins = 0;
+    let winnerCrystals = 100;
+    let validWinnerId: string | null = null;
+
+    let loserRating = 1000;
+    let loserLosses = 0;
+    let validLoserId: string | null = null;
+
+    if (winnerId && !isBotPlayer(winnerId) && !winnerId.startsWith('dev-player')) {
+      try {
+        const [wRec] = await db
+          .select({
+            id: users.id,
+            crystals: users.crystals,
+            rating: users.rating,
+            wins: users.wins,
+          })
+          .from(users)
+          .where(eq(users.id, winnerId))
+          .limit(1);
+
+        if (wRec) {
+          validWinnerId = wRec.id;
+          winnerRating = wRec.rating ?? 1000;
+          winnerWins = wRec.wins ?? 0;
+          winnerCrystals = wRec.crystals ?? 100;
+        }
+      } catch (err) {
+        console.warn(`[RoomManager] Failed to fetch winner record for ${winnerId}:`, err);
+      }
+    }
+
+    if (loserId && !isBotPlayer(loserId) && !loserId.startsWith('dev-player')) {
+      try {
+        const [lRec] = await db
+          .select({
+            id: users.id,
+            rating: users.rating,
+            losses: users.losses,
+          })
+          .from(users)
+          .where(eq(users.id, loserId))
+          .limit(1);
+
+        if (lRec) {
+          validLoserId = lRec.id;
+          loserRating = lRec.rating ?? 1000;
+          loserLosses = lRec.losses ?? 0;
+        }
+      } catch (err) {
+        console.warn(`[RoomManager] Failed to fetch loser record for ${loserId}:`, err);
+      }
+    }
+
+    // 2. Compute Elo rating adjustment
+    const eloResult = calculateElo(winnerRating, loserRating, { isBotMatch });
+
+    // 3. Update winner in DB (award crystals, add delta rating, increment wins)
+    if (validWinnerId) {
+      try {
+        await db
+          .update(users)
+          .set({
+            crystals: winnerCrystals + crystalsAwarded,
+            rating: eloResult.newWinnerRating,
+            wins: winnerWins + 1,
+          })
+          .where(eq(users.id, validWinnerId));
+      } catch (err) {
+        console.warn(`[RoomManager] Failed to update winner stats for ${validWinnerId}:`, err);
+      }
+    }
+
+    // 4. Update loser in DB (deduct delta rating with min floor 100, increment losses)
+    if (validLoserId && !isBotMatch) {
+      try {
+        await db
+          .update(users)
+          .set({
+            rating: eloResult.newLoserRating,
+            losses: loserLosses + 1,
+          })
+          .where(eq(users.id, validLoserId));
+      } catch (err) {
+        console.warn(`[RoomManager] Failed to update loser stats for ${validLoserId}:`, err);
+      }
+    }
+
+    // 5. Broadcast MATCH_END WebSocket payload with Elo delta and new ratings
     this.broadcast(roomId, {
       type: 'MATCH_END',
       payload: {
         winnerId,
         loserId,
         crystalsAwarded,
+        winnerDelta: eloResult.winnerDelta,
+        loserDelta: eloResult.loserDelta,
+        newWinnerRating: eloResult.newWinnerRating,
+        newLoserRating: eloResult.newLoserRating,
       },
     });
 
-    // 2. Broadcast updated ROOM_STATE with COMPLETED status
+    // 6. Broadcast updated ROOM_STATE with COMPLETED status
     this.broadcast(roomId, {
       type: 'ROOM_STATE',
       payload: this.getRoomState(roomId)!,
     });
 
-    // 3. Award 50 crystals to the winning player in users.crystals via Supabase update (if registered, not BOT)
-    let validWinnerId: string | null = null;
-    if (winnerId && !isBotPlayer(winnerId) && !winnerId.startsWith('dev-player')) {
-      try {
-        const [winnerRecord] = await db
-          .select({ id: users.id, crystals: users.crystals })
-          .from(users)
-          .where(eq(users.id, winnerId))
-          .limit(1);
-
-        if (winnerRecord) {
-          validWinnerId = winnerRecord.id;
-          await db
-            .update(users)
-            .set({ crystals: (winnerRecord.crystals || 0) + crystalsAwarded })
-            .where(eq(users.id, winnerId));
-        }
-      } catch (err) {
-        console.warn(`[RoomManager] Failed to award crystals to winner ${winnerId}:`, err);
-      }
-    }
-
-    // 4. Update match_rooms in Supabase: set status = 'COMPLETED' and winnerId = winnerId
+    // 7. Update match_rooms in Supabase: persist summary, combatLogs, and winner
     try {
       await db
         .update(matchRooms)
         .set({
           status: 'COMPLETED',
           winnerId: validWinnerId,
+          combatLogs: room.combatLog,
+          summary: {
+            winnerId,
+            loserId,
+            winnerDelta: eloResult.winnerDelta,
+            loserDelta: eloResult.loserDelta,
+            crystalsWon: crystalsAwarded,
+            cardsUsed: {
+              p1: room.p1Cards.map((c) => c.id),
+              p2: room.p2Cards.map((c) => c.id),
+            },
+            turnsCount: room.turnsCount || 0,
+            completedAt: new Date().toISOString(),
+          },
         })
         .where(eq(matchRooms.id, roomId));
     } catch (err) {

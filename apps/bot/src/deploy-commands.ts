@@ -65,6 +65,19 @@ export const commands = [
         .setDescription('Card ID or first 4-8 characters of UUID')
         .setRequired(true)
     ),
+  new SlashCommandBuilder()
+    .setName('leaderboard')
+    .setDescription('View the global player leaderboards')
+    .addStringOption((opt) =>
+      opt
+        .setName('category')
+        .setDescription('Category to rank by (rating or crystals)')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Rating (MMR)', value: 'rating' },
+          { name: 'Crystals', value: 'crystals' }
+        )
+    ),
 ].map((cmd) => cmd.toJSON());
 
 export async function deployCommands(): Promise<unknown> {

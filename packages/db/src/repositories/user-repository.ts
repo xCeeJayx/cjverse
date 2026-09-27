@@ -52,6 +52,9 @@ export async function ensureUser(id: string, username: string, avatarUrl?: strin
       username,
       avatarUrl: avatarUrl || null,
       crystals: 100,
+      rating: 1000,
+      wins: 0,
+      losses: 0,
       activeLineup: {
         vanguardCardId: null,
         strikerCardId: null,
@@ -81,6 +84,9 @@ export async function ensureUser(id: string, username: string, avatarUrl?: strin
     username,
     avatarUrl: avatarUrl || null,
     crystals: 100,
+    rating: 1000,
+    wins: 0,
+    losses: 0,
     activeLineup: {
       vanguardCardId: null,
       strikerCardId: null,
@@ -92,4 +98,16 @@ export async function ensureUser(id: string, username: string, avatarUrl?: strin
 
 export async function upsertUser(id: string, username: string, avatarUrl?: string | null): Promise<UserRecord> {
   return ensureUser(id, username, avatarUrl);
+}
+
+export async function updateUserLineup(
+  userId: string,
+  lineup: UserActiveLineup
+): Promise<UserRecord | undefined> {
+  const [updated] = await db
+    .update(users)
+    .set({ activeLineup: lineup })
+    .where(eq(users.id, userId))
+    .returning();
+  return updated;
 }

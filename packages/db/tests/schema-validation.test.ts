@@ -13,6 +13,9 @@ describe('Drizzle Database Schema Definitions', () => {
     expect(cols).toHaveProperty('id');
     expect(cols).toHaveProperty('username');
     expect(cols).toHaveProperty('crystals');
+    expect(cols).toHaveProperty('rating');
+    expect(cols).toHaveProperty('wins');
+    expect(cols).toHaveProperty('losses');
     expect(cols).toHaveProperty('activeLineup');
   });
 
@@ -33,10 +36,13 @@ describe('Drizzle Database Schema Definitions', () => {
     expect(testId).not.toContain('#');
   });
 
-  it('contains status enum in matchRooms table', () => {
+  it('contains status enum, combatLogs, and summary in matchRooms table', () => {
     const cols = getTableColumns(matchRooms);
     expect(cols).toHaveProperty('player1Id');
     expect(cols).toHaveProperty('player2Id');
     expect(cols).toHaveProperty('status');
+    expect(cols).toHaveProperty('winnerId');
+    expect(cols).toHaveProperty('combatLogs');
+    expect(cols).toHaveProperty('summary');
   });
 });

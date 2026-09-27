@@ -11,6 +11,9 @@ export const users = pgTable('users', {
   username: text('username').notNull(),
   avatarUrl: text('avatar_url'),
   crystals: integer('crystals').default(100).notNull(),
+  rating: integer('rating').default(1000).notNull(),
+  wins: integer('wins').default(0).notNull(),
+  losses: integer('losses').default(0).notNull(),
   activeLineup: jsonb('active_lineup').$type<UserActiveLineup>().default({
     vanguardCardId: null,
     strikerCardId: null,

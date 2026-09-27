@@ -46,6 +46,15 @@ describe('Discord Slash Command Deployment Definitions', () => {
     expect(duelBot?.description).toContain('Practice');
   });
 
+  it('defines /leaderboard command with optional category choices', () => {
+    const lb = commands.find((c) => c.name === 'leaderboard');
+    expect(lb).toBeDefined();
+    expect(lb?.description).toContain('leaderboard');
+    const catOpt = lb?.options?.find((opt: any) => opt.name === 'category');
+    expect(catOpt).toBeDefined();
+    expect((catOpt as any)?.choices?.map((c: any) => c.value)).toEqual(['rating', 'crystals']);
+  });
+
   it('purges global commands when DISCORD_GUILD_ID is present', async () => {
     const { vi } = await import('vitest');
     const { deployCommands } = await import('../src/deploy-commands');

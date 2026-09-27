@@ -42,6 +42,10 @@ export interface MatchEndPayload {
   winnerId: string;
   loserId: string;
   crystalsAwarded: number;
+  winnerDelta?: number;
+  loserDelta?: number;
+  newWinnerRating?: number;
+  newLoserRating?: number;
 }
 
 export type WebSocketClientMessage =
