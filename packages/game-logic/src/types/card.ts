@@ -28,3 +28,13 @@ export interface CardEntity {
     frameSlice: string;
   };
 }
+
+export interface CardStats {
+  maxHp: number;
+  currentHp: number;
+  atk: number;
+  def: number;
+  spd: number;
+  maxMana: number;
+  currentMana: number;
+}
