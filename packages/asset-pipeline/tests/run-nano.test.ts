@@ -35,7 +35,7 @@ describe('Nano Banana Pro Automated Runner System', () => {
       const entry = buildPromptEntry('dragon', 'male', 'void');
       expect(entry.filename).toBe('dragon_male_void.png');
       expect(entry.prompt).toContain('Masterpiece character concept art portrait, male dragon warrior channeling void magic');
-      expect(entry.prompt).toContain('borderless, frameless, seamless solid dark background, edge-to-edge illustration');
+      expect(entry.prompt).toContain('borderless, frameless, edge-to-edge illustration');
       expect(entry.prompt).not.toContain('trading card');
       expect(entry.prompt).not.toContain('card');
       expect(entry.negativePrompt).toContain('card border, border, frame, ornate frame, outer box');

@@ -27,11 +27,12 @@ export function buildPromptEntry(race: string, gender: string, element: string):
   const crownPart = config?.tier === 'S'
     ? `${genderLower === 'male' ? config.maleCrown : config.femaleCrown}, `
     : '';
+  const facialPart = config?.facialExpression ? `, ${config.facialExpression}` : '';
   const armorUpgrade = config?.armorUpgrade ? `, ${crownPart}upgraded with ${config.armorUpgrade}` : '';
   const bgPart = config?.bgTierPrefix && config?.backgroundVfx ? `, ${config.bgTierPrefix} ${config.backgroundVfx}` : '';
 
   const filename = `${race}_${gender}_${element}.png`;
-  const prompt = `Masterpiece character concept art portrait, ${gender} ${race} warrior channeling ${element} magic, ${elementDescription}${armorUpgrade}${bgPart}, dark fantasy manhwa style, sharp detailed ink linework, dynamic lighting, glowing ${element} energy particles, intense gaze, cinematic anime illustration, centered bust portrait, borderless, frameless, seamless solid dark background, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
+  const prompt = `Masterpiece character concept art portrait, ${gender} ${race} warrior channeling ${element} magic, ${elementDescription}${facialPart}${armorUpgrade}${bgPart}, dark fantasy manhwa style, sharp detailed ink linework, dynamic lighting, glowing ${element} energy particles, intense gaze, cinematic anime illustration, centered bust portrait, borderless, frameless, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
 
   return {
     filename,

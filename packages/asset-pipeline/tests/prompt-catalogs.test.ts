@@ -161,7 +161,7 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
         expect(content).toContain(
           `- **Target File**: \`packages/asset-pipeline/assets/normal/${race}/${expectedKey}.png\``
         );
-        expect(content).toContain('neutral dark slate/iron armor with unlit, uncharged runic engravings');
+        expect(content).toContain('pristine polished dark slate-iron plate armor with unlit, uncharged runic engravings');
         expect(content).toContain('neutral hands resting forward at mid-chest');
         expect(content).toContain('neutral glowing white/pale-gray eyes');
         expect(content).toContain('centered half-body waist-up portrait');
@@ -192,6 +192,10 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
       expect(entryMatches).not.toBeNull();
       expect(entryMatches!.length).toBe(46);
 
+      // Verify elemental prompts remove seamless pitch-black background tokens
+      expect(content).not.toContain('seamless pitch-black solid dark background');
+      expect(content).not.toContain('seamless pitch-black background');
+
       // Verify every gender & element combination has Reference Image, Modification Task, and Destination
       for (const gender of GENDERS) {
         for (const element of ELEMENTS) {
@@ -207,9 +211,10 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
           expect(content).toContain(`- **Reference Image**: \`${expectedRef}\``);
           expect(content).toContain(`- **Destination**: \`${expectedDest}\``);
           expect(content).toContain(
-            `- **Modification Task**: Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the dark slate iron armor runes with ${element} energy, ${crownPart}upgraded with ${config.armorUpgrade}. Pose with ${config.handAction}, channeling ${element} magic (${config.bgTierPrefix} ${config.backgroundVfx}).`
+            `- **Modification Task**: Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the dark slate iron armor runes with ${element} energy, ${crownPart}upgraded with ${config.armorUpgrade}. Display a ${config.facialExpression}. Pose with ${config.handAction}, channeling ${element} magic (${config.bgTierPrefix} ${config.backgroundVfx}).`
           );
           expect(content).toContain(config.armorUpgrade);
+          expect(content).toContain(config.facialExpression);
           expect(content).toContain(config.handAction);
           expect(content).toContain(config.bgTierPrefix);
           expect(content).toContain(config.backgroundVfx);
