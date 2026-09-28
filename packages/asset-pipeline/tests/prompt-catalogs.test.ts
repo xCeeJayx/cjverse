@@ -66,8 +66,10 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
       expect(config).toBeDefined();
       expect(['S', 'A', 'B', 'C']).toContain(config.tier);
 
-      // Verify each element specifies exact actions for both hands
+      // Verify each element specifies exact actions for both hands and armorUpgrade
       expect(config.handAction).toMatch(/right (hand|claw|palm).*left hand/);
+      expect(config.armorUpgrade).toBeDefined();
+      expect(config.armorUpgrade.length).toBeGreaterThan(15);
 
       // Verify tiered background complexity
       if (config.tier === 'S') {
@@ -117,6 +119,7 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
           expect(content).toContain(
             `- **Prompt**: \`Masterpiece character concept art portrait, ${gender} ${race} warrior channeling ${element} magic`
           );
+          expect(content).toContain(config.armorUpgrade);
           expect(content).toContain(config.handAction);
           expect(content).toContain(config.backgroundVfx);
           expect(content).toContain(POSITIVE_ARM_ANATOMY_ENFORCER);
@@ -192,8 +195,9 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
           expect(content).toContain(`- **Reference Image**: \`${expectedRef}\``);
           expect(content).toContain(`- **Destination**: \`${expectedDest}\``);
           expect(content).toContain(
-            `- **Modification Task**: Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the armor runes and pose with ${config.handAction}, channeling ${element} magic (${config.backgroundVfx}).`
+            `- **Modification Task**: Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the armor runes with ${element} energy, upgraded with ${config.armorUpgrade}. Pose with ${config.handAction}, channeling ${element} magic (${config.backgroundVfx}).`
           );
+          expect(content).toContain(config.armorUpgrade);
           expect(content).toContain(config.handAction);
           expect(content).toContain(config.backgroundVfx);
           expect(content).toContain(POSITIVE_ARM_ANATOMY_ENFORCER);

@@ -1,11 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { createCanvas } from '@napi-rs/canvas';
 import { CharacterPromptEntry, savePromptsToFile } from './generate-prompts';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export interface RunNanoOptions {
   sample?: number;

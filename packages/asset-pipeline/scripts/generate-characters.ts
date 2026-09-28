@@ -1,13 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createCanvas } from '@napi-rs/canvas';
 import { ELEMENT_TO_TIER, ElementTier, Race, Gender } from '@cjverse/game-logic';
+import { ELEMENT_TIERED_CONFIGS } from './generate-prompt-catalogs';
 export { ELEMENT_TO_TIER, ElementTier, Race, Gender };
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * Rich atmospheric and lighting descriptors for each of the 23 elements.
@@ -80,8 +77,10 @@ export function buildCharacterPrompt(
   const elemLower = element.toLowerCase();
   const elementDescription =
     ELEMENT_VISUAL_THEMES[elemLower] || `${element} magic energy aura`;
+  const config = ELEMENT_TIERED_CONFIGS?.[elemLower];
+  const armorUpgrade = config?.armorUpgrade ? `, upgraded with ${config.armorUpgrade}` : '';
 
-  const prompt = `Masterpiece character concept art portrait, ${gender} ${race} warrior channeling ${element} magic, ${elementDescription}, dark fantasy manhwa style, sharp detailed ink linework, dynamic lighting, glowing ${element} energy particles, intense gaze, cinematic anime illustration, centered bust portrait, borderless, frameless, seamless solid dark background, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
+  const prompt = `Masterpiece character concept art portrait, ${gender} ${race} warrior channeling ${element} magic, ${elementDescription}${armorUpgrade}, dark fantasy manhwa style, sharp detailed ink linework, dynamic lighting, glowing ${element} energy particles, intense gaze, cinematic anime illustration, centered bust portrait, borderless, frameless, seamless solid dark background, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
 
   return {
     prompt,
