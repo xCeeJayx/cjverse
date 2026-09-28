@@ -18,6 +18,8 @@ export interface ArenaState {
   combatLog?: string[];
   lastAction?: any;
   matchEnd?: MatchEndData | null;
+  p1Resonance?: any[];
+  p2Resonance?: any[];
 }
 
 export class ArenaController {

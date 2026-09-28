@@ -1,5 +1,15 @@
 import { db, matchRooms, users, cards, UserActiveLineup, eq, inArray, recordQuestProgress } from '@cjverse/db';
-import { calculateStats, generateCardFromSeed, generateCardId, calculateElo } from '@cjverse/game-logic';
+import {
+  calculateStats,
+  generateCardFromSeed,
+  generateCardId,
+  calculateElo,
+  StatusEffect,
+  ResonanceBuff,
+  calculateTeamResonance,
+  applyResonanceToCardStats,
+  processTurnStartEffects,
+} from '@cjverse/game-logic';
 import { InitiativeClock, CombatCardState } from '../engine/initiative-clock';
 import { resolveAction } from '../engine/action-resolver';
 import { determineFallbackAction } from '../engine/auto-battle';
@@ -30,6 +40,9 @@ export interface CombatCard extends CombatCardState {
   initiative: number;
   isAlive: boolean;
   playerId: string;
+  statusEffects: StatusEffect[];
+  critBonus?: number;
+  lifesteal?: number;
 }
 
 export interface GameRoom {
@@ -42,6 +55,8 @@ export interface GameRoom {
   timeRemaining: number;
   p1Cards: CombatCard[];
   p2Cards: CombatCard[];
+  p1Resonance?: ResonanceBuff[];
+  p2Resonance?: ResonanceBuff[];
   winnerId?: string | null;
   combatLog: string[];
   initiativeClock?: InitiativeClock;
@@ -77,6 +92,8 @@ export class RoomManager {
       timeRemaining: 15,
       p1Cards: [],
       p2Cards: [],
+      p1Resonance: [],
+      p2Resonance: [],
       winnerId: null,
       combatLog: [],
       autoBattlePlayers: new Set<string>(),
@@ -175,6 +192,8 @@ export class RoomManager {
       p2: { id: room.player2Id, name: 'Player 2', cards: room.p2Cards },
       winnerId: room.winnerId,
       combatLog: room.combatLog,
+      p1Resonance: room.p1Resonance || [],
+      p2Resonance: room.p2Resonance || [],
     };
   }
 
@@ -228,11 +247,46 @@ export class RoomManager {
     const room = existing || this.createRoom(roomId, p1Id, p2Id);
 
     // Fetch and hydrate P1 and P2 lineups
-    const p1Cards = await this.fetchPlayerLineupCards(p1Id, 1001);
-    const p2Cards = await this.fetchPlayerLineupCards(p2Id, 2001);
+    let p1Cards = await this.fetchPlayerLineupCards(p1Id, 1001);
+    let p2Cards = await this.fetchPlayerLineupCards(p2Id, 2001);
+
+    // Calculate team resonance buffs
+    const p1Resonance = calculateTeamResonance(p1Cards);
+    const p2Resonance = calculateTeamResonance(p2Cards);
+
+    p1Cards = p1Cards.map((c) => {
+      const buffed = applyResonanceToCardStats(c, p1Resonance);
+      const critBuff = p1Resonance.find((r) => r.critBonus);
+      const lifestealBuff = p1Resonance.find((r) => r.lifesteal);
+      return {
+        ...buffed,
+        critBonus: critBuff?.critBonus ?? 0.05,
+        lifesteal: lifestealBuff?.lifesteal ?? 0,
+      };
+    });
+
+    p2Cards = p2Cards.map((c) => {
+      const buffed = applyResonanceToCardStats(c, p2Resonance);
+      const critBuff = p2Resonance.find((r) => r.critBonus);
+      const lifestealBuff = p2Resonance.find((r) => r.lifesteal);
+      return {
+        ...buffed,
+        critBonus: critBuff?.critBonus ?? 0.05,
+        lifesteal: lifestealBuff?.lifesteal ?? 0,
+      };
+    });
 
     room.p1Cards = p1Cards;
     room.p2Cards = p2Cards;
+    room.p1Resonance = p1Resonance;
+    room.p2Resonance = p2Resonance;
+
+    for (const buff of p1Resonance) {
+      room.combatLog.push(`✨ [P1] Active Resonance: ${buff.badge}`);
+    }
+    for (const buff of p2Resonance) {
+      room.combatLog.push(`✨ [P2] Active Resonance: ${buff.badge}`);
+    }
 
     // Initialize Initiative Clock with all 6 combat cards
     const allCombatCards = [...p1Cards, ...p2Cards];
@@ -292,6 +346,7 @@ export class RoomManager {
                 initiative: 0,
                 isAlive: true,
                 playerId,
+                statusEffects: [],
               };
             }
 
@@ -318,6 +373,7 @@ export class RoomManager {
               initiative: 0,
               isAlive: true,
               playerId,
+              statusEffects: [],
             };
           });
         }
@@ -350,6 +406,7 @@ export class RoomManager {
         initiative: 0,
         isAlive: true,
         playerId,
+        statusEffects: [],
       };
     });
   }
@@ -375,21 +432,70 @@ export class RoomManager {
     }
 
     // Tick clock until a living card reaches 100
-    let nextCard = null;
+    let nextCard: CombatCard | null = null;
     for (let attempts = 0; attempts < 100; attempts++) {
       const res = room.initiativeClock.tick();
-      if (res.activeCard && res.activeCard.isAlive) {
-        nextCard = res.activeCard;
+      if (res.activeCard && res.activeCard.isAlive && (res.activeCard as CombatCard).currentHp > 0) {
+        nextCard = res.activeCard as CombatCard;
         break;
       }
     }
 
-    if (nextCard) {
-      room.activeCardId = nextCard.id;
-    } else {
+    if (!nextCard) {
       // Fallback: pick first alive card
-      const fallback = [...room.p1Cards, ...room.p2Cards].find((c) => c.isAlive);
-      room.activeCardId = fallback ? fallback.id : null;
+      const fallback = [...room.p1Cards, ...room.p2Cards].find((c) => c.isAlive && c.currentHp > 0);
+      nextCard = fallback || null;
+    }
+
+    if (!nextCard) {
+      this.handleMatchConclusion(roomId, p1Alive);
+      return this.getRoomState(roomId);
+    }
+
+    room.activeCardId = nextCard.id;
+
+    // Process turn-start effects (Burn DoT, Void Siphon MP drain, Freeze turn skip)
+    const allCombatCards = [...room.p1Cards, ...room.p2Cards];
+    const turnStart = processTurnStartEffects(nextCard, allCombatCards);
+
+    if (turnStart.logs && turnStart.logs.length > 0) {
+      for (const log of turnStart.logs) {
+        room.combatLog.push(log);
+      }
+    }
+
+    // If unit was defeated by status damage (Burn DoT, etc.)
+    if (nextCard.currentHp <= 0) {
+      nextCard.isAlive = false;
+      nextCard.currentHp = 0;
+      room.combatLog.push(`💀 ${nextCard.name} was defeated by status ailments!`);
+
+      const p1StillAlive = room.p1Cards.some((c) => c.isAlive && c.currentHp > 0);
+      const p2StillAlive = room.p2Cards.some((c) => c.isAlive && c.currentHp > 0);
+      if (!p1StillAlive || !p2StillAlive) {
+        this.handleMatchConclusion(roomId, p1StillAlive);
+        return this.getRoomState(roomId);
+      }
+
+      if (broadcastUpdate) {
+        this.broadcast(roomId, {
+          type: 'ROOM_STATE',
+          payload: this.getRoomState(roomId)!,
+        });
+      }
+
+      return this.advanceTurn(roomId, broadcastUpdate);
+    }
+
+    // If unit is FROZEN and failed roll, their turn is skipped
+    if (turnStart.skippedTurn) {
+      if (broadcastUpdate) {
+        this.broadcast(roomId, {
+          type: 'ROOM_STATE',
+          payload: this.getRoomState(roomId)!,
+        });
+      }
+      return this.advanceTurn(roomId, broadcastUpdate);
     }
 
     room.timeRemaining = 15;
@@ -517,7 +623,8 @@ export class RoomManager {
     }
 
     // Resolve authoritative damage & mana
-    const resolved = resolveAction(actionType, active, target);
+    const activeResonance = isP1 ? room.p1Resonance : room.p2Resonance;
+    const resolved = resolveAction(actionType, active, target, { teamResonance: activeResonance });
 
     // Format combat log message
     const actorSide = isP1 ? 'P1' : 'P2';
@@ -527,10 +634,30 @@ export class RoomManager {
 
     room.combatLog.push(logMsg);
 
+    if (resolved.shieldAbsorbed && resolved.shieldAbsorbed > 0) {
+      room.combatLog.push(`🛡️ [${targetSide}] ${target.name}'s Divine Shield absorbed ${resolved.shieldAbsorbed} DMG!`);
+    }
+
+    if (resolved.statusApplied) {
+      const eff = resolved.statusApplied;
+      const effName = typeof eff === 'string' ? eff : (eff.name || eff.type);
+      room.combatLog.push(`✨ [${targetSide}] ${target.name} was afflicted with ${effName}!`);
+    }
+
+    if (resolved.lifestealHealed && resolved.lifestealHealed > 0) {
+      room.combatLog.push(`🌑 [${actorSide}] ${active.name} siphoned ${resolved.lifestealHealed} HP via Shadow Resonance!`);
+    }
+
     if (target.currentHp <= 0) {
       target.isAlive = false;
       target.currentHp = 0;
       room.combatLog.push(`💀 [${targetSide}] ${target.name} was defeated!`);
+    }
+
+    if (active.currentHp <= 0) {
+      active.isAlive = false;
+      active.currentHp = 0;
+      room.combatLog.push(`💀 [${actorSide}] ${active.name} succumbed to Bleed!`);
     }
 
     // Check game completion

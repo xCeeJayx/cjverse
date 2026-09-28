@@ -41,6 +41,11 @@ import { handleDailyCommand } from './commands/daily';
 import { handleQuestsCommand, handleQuestClaimCommand } from './commands/quests';
 import { handleShopCommand } from './commands/shop';
 import { handlePackBuyCommand } from './commands/pack';
+import {
+  handleBossStatusCommand,
+  handleBossFightCommand,
+  handleBossSpawnCommand,
+} from './commands/boss';
 import { BoosterPackType } from '@cjverse/game-logic';
 
 // Safe environment variable loading from root and bot .env files
@@ -63,6 +68,7 @@ export * from './commands/daily';
 export * from './commands/quests';
 export * from './commands/shop';
 export * from './commands/pack';
+export * from './commands/boss';
 export * from './services/card-resolver';
 export * from './deploy-commands';
 
@@ -680,6 +686,53 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     } catch (err) {
       console.error('[Pack Command Error]:', err);
       const fallback = '❌ An error occurred while opening the pack.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'boss') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    const subcommand = interaction.options.getSubcommand(false);
+
+    try {
+      if (subcommand === 'fight') {
+        const result = await handleBossFightCommand(interaction.user.id);
+        if (!result.success) {
+          await interaction.editReply(result.message || '❌ Raid entry denied.');
+          return;
+        }
+        await interaction.editReply({
+          embeds: [result.embed!],
+          components: result.components,
+        });
+        return;
+      }
+
+      if (subcommand === 'spawn') {
+        const presetName = interaction.options.getString('name', false) || undefined;
+        const result = await handleBossSpawnCommand(interaction.user.id, presetName);
+        if (!result.success) {
+          await interaction.editReply(result.message || '❌ Failed to spawn boss.');
+          return;
+        }
+        await interaction.editReply({ embeds: [result.embed!] });
+        return;
+      }
+
+      // Default or 'status' subcommand
+      const result = await handleBossStatusCommand();
+      await interaction.editReply({ embeds: [result.embed] });
+    } catch (err) {
+      console.error('[Boss Command Error]:', err);
+      const fallback = '❌ An error occurred while processing the World Boss command.';
       if (interaction.deferred || typeof interaction.editReply === 'function') {
         await interaction.editReply(fallback).catch(() => {});
       } else if (typeof interaction.reply === 'function') {

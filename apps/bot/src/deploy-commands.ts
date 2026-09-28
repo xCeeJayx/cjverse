@@ -169,6 +169,36 @@ export const commands = [
             )
         )
     ),
+  new SlashCommandBuilder()
+    .setName('boss')
+    .setDescription('Server-wide Co-op World Boss Raid')
+    .addSubcommand((sub) =>
+      sub
+        .setName('status')
+        .setDescription('View active World Boss status, HP bar, weaknesses, and top contributors')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('fight')
+        .setDescription('Verify lineup and enter the live World Boss raid arena (3 attempts / 12h)')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('spawn')
+        .setDescription('Force spawn a new World Boss (Admin only)')
+        .addStringOption((opt) =>
+          opt
+            .setName('name')
+            .setDescription('Specific World Boss preset')
+            .setRequired(false)
+            .addChoices(
+              { name: 'Abyssal Leviathan (Void)', value: 'Abyssal Leviathan' },
+              { name: 'Infernal Behemoth (Fire)', value: 'Infernal Behemoth' },
+              { name: 'Glacial Titan (Ice)', value: 'Glacial Titan' },
+              { name: 'Storm Tempest (Lightning)', value: 'Storm Tempest' }
+            )
+        )
+    ),
 ].map((cmd) => cmd.toJSON());
 
 export async function deployCommands(): Promise<unknown> {

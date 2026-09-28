@@ -40,7 +40,76 @@ describe('Game Server Combat Loop & Room Hydration', () => {
     expect(result?.resolved.damage).toBeGreaterThan(0);
     expect(target.currentHp).toBeLessThan(initialHp);
     expect(room.combatLog.length).toBeGreaterThan(0);
-    expect(room.combatLog[0]).toContain('DMG');
+    expect(room.combatLog.some((log) => log.includes('DMG'))).toBe(true);
+  });
+
+  it('skips turn when active unit is frozen solid and decrements status', async () => {
+    const room = await manager.hydrateRoomFromDb('test-room-frozen');
+    room.status = 'IN_PROGRESS';
+
+    const p1First = room.p1Cards[0];
+    p1First.statusEffects = [
+      {
+        id: 'frz-1',
+        type: 'freeze',
+        name: 'Freeze',
+        duration: 1,
+        potency: 1.0, // Guaranteed skip
+        badge: '❄️ 1T',
+        icon: '❄️',
+      },
+    ];
+
+    // Force p1First to be the next active card by setting high spd and initiative
+    p1First.initiative = 99;
+    p1First.spd = 100;
+    for (const c of [...room.p1Cards, ...room.p2Cards]) {
+      if (c.id !== p1First.id) {
+        c.initiative = 0;
+        c.spd = 1;
+      }
+    }
+
+    manager.advanceTurn('test-room-frozen', false);
+
+    expect(room.combatLog.some((log) => log.includes('is frozen solid and cannot move'))).toBe(true);
+    // p1First duration decremented and purged
+    expect(p1First.statusEffects.length).toBe(0);
+  });
+
+  it('deals burn damage at turn start to afflicted unit', async () => {
+    const room = await manager.hydrateRoomFromDb('test-room-burn');
+    room.status = 'IN_PROGRESS';
+
+    const p1Card = room.p1Cards[0];
+    p1Card.currentHp = 1000;
+    p1Card.maxHp = 1000;
+    p1Card.statusEffects = [
+      {
+        id: 'brn-1',
+        type: 'burn',
+        name: 'Burn',
+        duration: 2,
+        potency: 0.05,
+        badge: '🔥 2T',
+        icon: '🔥',
+      },
+    ];
+
+    p1Card.initiative = 99;
+    p1Card.spd = 100;
+    for (const c of [...room.p1Cards, ...room.p2Cards]) {
+      if (c.id !== p1Card.id) {
+        c.initiative = 0;
+        c.spd = 1;
+      }
+    }
+
+    manager.advanceTurn('test-room-burn', false);
+
+    // 5% of 1000 is 50 damage
+    expect(p1Card.currentHp).toBe(950);
+    expect(room.combatLog.some((log) => log.includes('Burn damage'))).toBe(true);
   });
 
   it('toggles auto-battle mode on and off', async () => {

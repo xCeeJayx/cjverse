@@ -147,6 +147,7 @@ export function Navbar({ initialUser }: NavbarProps) {
 
   const navLinks = [
     { label: 'Arena', href: '/duel', icon: '⚔️' },
+    { label: 'World Boss', href: '/boss', icon: '💀' },
     { label: 'Collection / Team', href: '/collection', icon: '🎴' },
     { label: 'Shop', href: '/shop', icon: '🏪' },
     { label: 'Market', href: '/market', icon: '⚖️' },
@@ -183,6 +184,8 @@ export function Navbar({ initialUser }: NavbarProps) {
               const isActive =
                 link.href === '/duel'
                   ? pathname?.startsWith('/duel')
+                  : link.href === '/boss'
+                  ? pathname?.startsWith('/boss')
                   : pathname === link.href;
 
               return (

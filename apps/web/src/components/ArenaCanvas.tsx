@@ -106,6 +106,7 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
     const now = performance.now();
     const damage = action.damage ?? 0;
     const isCrit = Boolean(action.isCrit);
+    const log = (action.combatLog || '').toLowerCase();
 
     // Spawn damage floating number
     floatingTextsRef.current.push({
@@ -121,8 +122,67 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
       isCrit,
     });
 
+    // Check for Divine Shield absorption
+    if ((action.shieldAbsorbed && action.shieldAbsorbed > 0) || log.includes('shield absorbed')) {
+      floatingTextsRef.current.push({
+        id: Math.random().toString(),
+        text: '🛡️ BLOCKED!',
+        x: targetX,
+        y: targetY - 26,
+        startY: targetY - 26,
+        startTime: now,
+        duration: 900,
+        color: '#c084fc',
+        fontSize: 16,
+        isCrit: true,
+      });
+    }
+
+    // Check for status effect inflicted alerts
+    if (action.statusApplied || log.includes('afflicted') || log.includes('frozen') || log.includes('burn')) {
+      const eff = action.statusApplied;
+      const effType = (typeof eff === 'string' ? eff : eff?.type || '').toLowerCase();
+
+      let alertText = '';
+      let alertColor = '#38bdf8';
+
+      if (effType === 'freeze' || log.includes('frozen') || log.includes('freeze')) {
+        alertText = '❄️ FROZEN!';
+        alertColor = '#38bdf8'; // Cyan
+      } else if (effType === 'burn' || log.includes('burn')) {
+        alertText = '🔥 BURNED!';
+        alertColor = '#ef4444'; // Crimson
+      } else if (effType === 'shock' || log.includes('shock')) {
+        alertText = '⚡ SHOCKED!';
+        alertColor = '#eab308'; // Yellow
+      } else if (effType === 'bleed' || log.includes('bleed')) {
+        alertText = '🩸 BLEEDING!';
+        alertColor = '#f43f5e'; // Rose
+      } else if (effType === 'divine_shield' || log.includes('shield')) {
+        alertText = '🛡️ SHIELD UP!';
+        alertColor = '#c084fc';
+      } else if (effType === 'void_siphon' || log.includes('siphon')) {
+        alertText = '🌀 SIPHONED!';
+        alertColor = '#a855f7';
+      }
+
+      if (alertText) {
+        floatingTextsRef.current.push({
+          id: Math.random().toString(),
+          text: alertText,
+          x: targetX,
+          y: targetY - 48,
+          startY: targetY - 48,
+          startTime: now + 60,
+          duration: 950,
+          color: alertColor,
+          fontSize: 16,
+          isCrit: true,
+        });
+      }
+    }
+
     // Check for elemental advantage or critical text
-    const log = (action.combatLog || '').toLowerCase();
     if (isCrit || log.includes('effective') || log.includes('advantage')) {
       floatingTextsRef.current.push({
         id: Math.random().toString(),
@@ -135,6 +195,35 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
         color: '#ffd700',
         fontSize: 14,
         isCrit: true,
+      });
+    }
+
+    // Check for Shadow Resonance Lifesteal
+    if (action.lifestealHealed && action.lifestealHealed > 0) {
+      const actorId = action.actorCardId;
+      const p1ActIdx = p1Cards.findIndex((c: any) => c.id === actorId);
+      const p2ActIdx = p2Cards.findIndex((c: any) => c.id === actorId);
+      let actorX = 400;
+      let actorY = 225;
+      if (p1ActIdx !== -1) {
+        actorX = 40 + 160;
+        actorY = 115 + p1ActIdx * 105 + 20;
+      } else if (p2ActIdx !== -1) {
+        actorX = 800 - 360 + 160;
+        actorY = 115 + p2ActIdx * 105 + 20;
+      }
+
+      floatingTextsRef.current.push({
+        id: Math.random().toString(),
+        text: `+${action.lifestealHealed} HP`,
+        x: actorX,
+        y: actorY - 24,
+        startY: actorY - 24,
+        startTime: now + 80,
+        duration: 850,
+        color: '#10b981',
+        fontSize: 14,
+        isCrit: false,
       });
     }
 
@@ -226,18 +315,79 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
       // Team Headers
       ctx.textAlign = 'left';
       ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 16px system-ui, sans-serif';
+      ctx.font = 'bold 15px system-ui, sans-serif';
       ctx.fillText(`🛡️ P1: ${arenaState.p1.name || 'Player 1'}`, 40, 95);
 
       ctx.textAlign = 'right';
       ctx.fillStyle = '#f43f5e';
-      ctx.font = 'bold 16px system-ui, sans-serif';
+      ctx.font = 'bold 15px system-ui, sans-serif';
       ctx.fillText(`⚔️ P2: ${arenaState.p2.name || 'Player 2'}`, canvas.width - 40, 95);
+
+      // Active Resonance Passives Display (Top Corners)
+      const p1Resonance = arenaState.p1Resonance || (arenaState.p1 as any)?.resonance || [];
+      const p2Resonance = arenaState.p2Resonance || (arenaState.p2 as any)?.resonance || [];
+
+      // P1 Resonance Banner (Top-Left)
+      if (p1Resonance && p1Resonance.length > 0) {
+        let p1Rx = 40;
+        for (const buff of p1Resonance) {
+          const badgeText = buff.badge || buff.name || 'Resonance';
+          ctx.save();
+          ctx.font = 'bold 10px system-ui, sans-serif';
+          const tw = ctx.measureText(badgeText).width + 14;
+
+          ctx.shadowColor = '#38bdf8';
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(p1Rx, 48, tw, 18, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.textAlign = 'left';
+          ctx.fillText(badgeText, p1Rx + 7, 61);
+          ctx.restore();
+
+          p1Rx += tw + 6;
+        }
+      }
+
+      // P2 Resonance Banner (Top-Right)
+      if (p2Resonance && p2Resonance.length > 0) {
+        let p2Rx = canvas.width - 40;
+        for (const buff of p2Resonance) {
+          const badgeText = buff.badge || buff.name || 'Resonance';
+          ctx.save();
+          ctx.font = 'bold 10px system-ui, sans-serif';
+          const tw = ctx.measureText(badgeText).width + 14;
+          const startX = p2Rx - tw;
+
+          ctx.shadowColor = '#f43f5e';
+          ctx.shadowBlur = 8;
+          ctx.fillStyle = 'rgba(244, 63, 94, 0.15)';
+          ctx.strokeStyle = '#f43f5e';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(startX, 48, tw, 18, 4);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#f43f5e';
+          ctx.textAlign = 'left';
+          ctx.fillText(badgeText, startX + 7, 61);
+          ctx.restore();
+
+          p2Rx -= (tw + 6);
+        }
+      }
 
       // 3. Card Renderer with Smooth Interpolation & Spotlight
       const renderCard = (card: any, x: number, y: number, isP1: boolean) => {
         const w = 320;
-        const h = 95;
+        const h = 98;
         const isDead = (card.currentHp ?? 1) <= 0;
         const isActive = card.id === arenaState.activeCardId;
         const isTarget = card.id === activeTargetId;
@@ -285,20 +435,20 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
 
         // Card Name & Role Badge
         ctx.textAlign = 'left';
-        ctx.font = 'bold 14px system-ui, sans-serif';
+        ctx.font = 'bold 13px system-ui, sans-serif';
         const roleText = (card.role || 'Card').toUpperCase();
         const cardIdClean = (card.id || '').replace(/#/g, '');
         const cardName = card.name || `${card.variant || ''} ${card.race || ''}`.trim() || `Card ${cardIdClean}`;
         ctx.fillStyle = isDead ? '#64748b' : '#f8fafc';
-        ctx.fillText(`${cardName} [${roleText}]`, x + 12, y + 22);
+        ctx.fillText(`${cardName} [${roleText}]`, x + 10, y + 18);
 
         // Element, ID & Stats Info
-        ctx.font = '12px system-ui, sans-serif';
+        ctx.font = '11px system-ui, sans-serif';
         ctx.fillStyle = '#94a3b8';
         const elemText = card.element ? `${card.element.toUpperCase()} (${card.elementTier || 'A'})` : 'Neutral';
         const pwrText = card.powerScore ? `PWR: ${card.powerScore}` : '';
         const idText = cardIdClean ? `ID: ${cardIdClean}` : '';
-        ctx.fillText(`${elemText} | ${idText} | ATK: ${card.atk ?? 100} | DEF: ${card.def ?? 50} ${pwrText}`, x + 12, y + 40);
+        ctx.fillText(`${elemText} | ${idText} | ATK: ${card.atk ?? 100} | DEF: ${card.def ?? 50} ${pwrText}`, x + 10, y + 33);
 
         // Smooth Animated HP Bar
         const maxHp = card.maxHp || 1000;
@@ -306,14 +456,14 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
         const hpPct = Math.max(0, Math.min(1, animated.hp / maxHp));
 
         ctx.fillStyle = '#334155';
-        ctx.fillRect(x + 12, y + 50, w - 24, 12);
+        ctx.fillRect(x + 10, y + 40, w - 20, 10);
         ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : hpPct > 0.25 ? '#eab308' : '#ef4444';
-        ctx.fillRect(x + 12, y + 50, (w - 24) * hpPct, 12);
+        ctx.fillRect(x + 10, y + 40, (w - 20) * hpPct, 10);
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 10px system-ui, sans-serif';
+        ctx.font = 'bold 9px system-ui, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`HP: ${curHpDisplay} / ${maxHp}`, x + w / 2, y + 60);
+        ctx.fillText(`HP: ${curHpDisplay} / ${maxHp}`, x + w / 2, y + 48);
 
         // Smooth Animated Mana Bar
         const maxMana = card.maxMana || 100;
@@ -321,13 +471,81 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
         const manaPct = Math.max(0, Math.min(1, animated.mana / maxMana));
 
         ctx.fillStyle = '#1e293b';
-        ctx.fillRect(x + 12, y + 68, w - 24, 8);
+        ctx.fillRect(x + 10, y + 54, w - 20, 8);
         ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(x + 12, y + 68, (w - 24) * manaPct, 8);
+        ctx.fillRect(x + 10, y + 54, (w - 20) * manaPct, 8);
 
         ctx.fillStyle = '#cbd5e1';
-        ctx.font = '9px system-ui, sans-serif';
-        ctx.fillText(`MP: ${curManaDisplay} / ${maxMana}`, x + w / 2, y + 75);
+        ctx.font = '8px system-ui, sans-serif';
+        ctx.fillText(`MP: ${curManaDisplay} / ${maxMana}`, x + w / 2, y + 61);
+
+        // Status Effect Badges (Glowing icons & remaining turn counters)
+        if (!isDead && card.statusEffects && card.statusEffects.length > 0) {
+          let badgeX = x + 10;
+          const badgeY = y + 68;
+
+          for (const eff of card.statusEffects) {
+            const effType = (eff.type || '').toLowerCase();
+            let icon = eff.icon || '✨';
+            let color = '#38bdf8';
+            let bg = 'rgba(56, 189, 248, 0.2)';
+
+            if (effType === 'burn') {
+              icon = '🔥';
+              color = '#ef4444';
+              bg = 'rgba(239, 68, 68, 0.25)';
+            } else if (effType === 'freeze') {
+              icon = '❄️';
+              color = '#38bdf8';
+              bg = 'rgba(56, 189, 248, 0.25)';
+            } else if (effType === 'shock') {
+              icon = '⚡';
+              color = '#eab308';
+              bg = 'rgba(234, 179, 8, 0.25)';
+            } else if (effType === 'bleed') {
+              icon = '🩸';
+              color = '#f43f5e';
+              bg = 'rgba(244, 63, 94, 0.25)';
+            } else if (effType === 'divine_shield') {
+              icon = '🛡️';
+              color = '#a855f7';
+              bg = 'rgba(168, 85, 247, 0.25)';
+            } else if (effType === 'void_siphon') {
+              icon = '🌀';
+              color = '#8b5cf6';
+              bg = 'rgba(139, 92, 246, 0.25)';
+            }
+
+            const label =
+              eff.type === 'bleed' && eff.potency && eff.potency > 1
+                ? `${icon} x${eff.potency}`
+                : `${icon} ${eff.duration ?? 1}T`;
+
+            ctx.save();
+            ctx.font = 'bold 9px system-ui, sans-serif';
+            const textWidth = ctx.measureText(label).width;
+            const badgeW = Math.max(36, textWidth + 8);
+            const badgeH = 15;
+
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 6;
+            ctx.fillStyle = bg;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 3);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, badgeX + badgeW / 2, badgeY + 11);
+            ctx.restore();
+
+            badgeX += badgeW + 6;
+            if (badgeX > x + w - 45) break;
+          }
+        }
 
         // Target / Active / Defeated Badges
         if (isDead) {
@@ -341,12 +559,12 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
           ctx.fillStyle = '#fbbf24';
           ctx.font = 'bold 10px system-ui, sans-serif';
           ctx.textAlign = 'right';
-          ctx.fillText('⚡ ACTIVE TURN', x + w - 10, y + 20);
+          ctx.fillText('⚡ ACTIVE TURN', x + w - 10, y + 18);
         } else if (isTarget) {
           ctx.fillStyle = '#ef4444';
           ctx.font = 'bold 10px system-ui, sans-serif';
           ctx.textAlign = 'right';
-          ctx.fillText('🎯 TARGET', x + w - 10, y + 20);
+          ctx.fillText('🎯 TARGET', x + w - 10, y + 18);
         }
 
         ctx.restore();
@@ -415,7 +633,7 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
     p2Cards.forEach((c: any, i: number) => {
       const cardX = canvas.width - 360;
       const cardY = 115 + i * 105;
-      if (x >= cardX && x <= cardX + 320 && y >= cardY && y <= cardY + 95) {
+      if (x >= cardX && x <= cardX + 320 && y >= cardY && y <= cardY + 98) {
         if ((c.currentHp ?? 1) > 0) {
           setTargetId(c.id);
         }
@@ -427,7 +645,7 @@ export const ArenaCanvas: React.FC<ArenaCanvasProps> = ({
     p1Cards.forEach((c: any, i: number) => {
       const cardX = 40;
       const cardY = 115 + i * 105;
-      if (x >= cardX && x <= cardX + 320 && y >= cardY && y <= cardY + 95) {
+      if (x >= cardX && x <= cardX + 320 && y >= cardY && y <= cardY + 98) {
         if ((c.currentHp ?? 1) > 0) {
           setTargetId(c.id);
         }

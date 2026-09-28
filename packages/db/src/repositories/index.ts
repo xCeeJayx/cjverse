@@ -5,3 +5,4 @@ export * from './market-repository';
 export * from './trade-repository';
 export * from './quest-repository';
 export * from './pack-repository';
+export * from './world-boss-repository';

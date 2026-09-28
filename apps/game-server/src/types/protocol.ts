@@ -21,6 +21,9 @@ export interface ActionResolvedPayload {
   targetRemainingHp: number;
   animations: string[];
   combatLog?: string;
+  statusApplied?: any;
+  shieldAbsorbed?: number;
+  lifestealHealed?: number;
 }
 
 export interface RoomStatePayload {
@@ -31,6 +34,8 @@ export interface RoomStatePayload {
   p2: { id: string; name: string; cards: any[] };
   winnerId?: string | null;
   combatLog?: string[];
+  p1Resonance?: any[];
+  p2Resonance?: any[];
 }
 
 export interface TimerTickPayload {

@@ -3,3 +3,4 @@ export * from './cards';
 export * from './match-rooms';
 export * from './market';
 export * from './trades';
+export * from './world-boss';
