@@ -1,6 +1,7 @@
 import { EmbedBuilder } from 'discord.js';
 import { buyAndOpenBoosterPack, PackPurchaseResult } from '@cjverse/db';
 import { BoosterPackType, BOOSTER_PACKS, GeneratedCard } from '@cjverse/game-logic';
+import { renderCardComposite } from '@cjverse/asset-pipeline';
 
 export function formatVariantEmoji(variant: string): string {
   switch (variant.toLowerCase()) {
@@ -32,6 +33,8 @@ export async function handlePackBuyCommand(
   embed?: EmbedBuilder;
   cards?: GeneratedCard[];
   remainingCrystals?: number;
+  featuredCard?: GeneratedCard;
+  imageBuffer?: Buffer;
 }> {
   const result: PackPurchaseResult = await buyAndOpenBoosterPack(userId, packType);
 
@@ -54,6 +57,30 @@ export async function handlePackBuyCommand(
 
   const cardListFormatted = cards.map(formatCardSummary).join('\n');
 
+  // Identify featured card (highest rarity variant, highest powerScore)
+  const variantRank: Record<string, number> = {
+    diamond: 4,
+    gold: 3,
+    silver: 2,
+    normal: 1,
+  };
+  const sortedCards = [...cards].sort((a, b) => {
+    const rA = variantRank[a.variant.toLowerCase()] || 0;
+    const rB = variantRank[b.variant.toLowerCase()] || 0;
+    if (rB !== rA) return rB - rA;
+    return b.powerScore - a.powerScore;
+  });
+  const featuredCard = sortedCards[0] || cards[0];
+
+  let imageBuffer: Buffer | undefined;
+  if (featuredCard) {
+    try {
+      imageBuffer = await renderCardComposite(featuredCard);
+    } catch (err) {
+      console.warn('[Pack Command] Failed to render composite:', err);
+    }
+  }
+
   const embed = new EmbedBuilder()
     .setTitle(`🎉 Opened ${packConfig.name}!`)
     .setDescription(
@@ -72,5 +99,8 @@ export async function handlePackBuyCommand(
     embed,
     cards,
     remainingCrystals: result.remainingCrystals,
+    featuredCard,
+    imageBuffer,
   };
 }
+

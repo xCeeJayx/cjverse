@@ -108,7 +108,7 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
 
       const card = result.card!;
       const attachment = new AttachmentBuilder(result.imageBuffer!, {
-        name: `card-${card.race}-${card.variant}.png`,
+        name: `${card.id}.png`,
       });
 
       const cardIdDisplay = card.id ? `\`${card.id}\`` : 'Generated';
@@ -121,7 +121,7 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
             `**Level:** ${card.level}\n` +
             `**Power Score:** ${card.powerScore}`
         )
-        .setImage(`attachment://${attachment.name}`)
+        .setImage(`attachment://${card.id}.png`)
         .setColor(0x5865f2);
 
       await interaction.editReply({ embeds: [embed], files: [attachment] });
@@ -358,10 +358,22 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
         )
         .setColor(0x00ff99);
 
-      if (interaction.deferred || typeof interaction.editReply === 'function') {
-        await interaction.editReply({ embeds: [embed] });
-      } else if (typeof interaction.reply === 'function') {
-        await interaction.reply({ embeds: [embed] });
+      if (result.imageBuffer) {
+        const attachment = new AttachmentBuilder(result.imageBuffer, {
+          name: `${card.id}.png`,
+        });
+        embed.setImage(`attachment://${card.id}.png`);
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply({ embeds: [embed], files: [attachment] });
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply({ embeds: [embed], files: [attachment] });
+        }
+      } else {
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply({ embeds: [embed] });
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply({ embeds: [embed] });
+        }
       }
     } catch (err) {
       console.error('[Upgrade Interaction Error]:', err);
@@ -408,9 +420,9 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
 
       if (result.imageBuffer) {
         const attachment = new AttachmentBuilder(result.imageBuffer, {
-          name: `evolved-${card.race}-${card.variant}.png`,
+          name: `${card.id}.png`,
         });
-        embed.setImage(`attachment://${attachment.name}`);
+        embed.setImage(`attachment://${card.id}.png`);
         if (interaction.deferred || typeof interaction.editReply === 'function') {
           await interaction.editReply({ embeds: [embed], files: [attachment] });
         } else if (typeof interaction.reply === 'function') {
@@ -684,7 +696,15 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
           return;
         }
 
-        await interaction.editReply({ embeds: [result.embed!] });
+        if (result.imageBuffer && result.featuredCard) {
+          const attachment = new AttachmentBuilder(result.imageBuffer, {
+            name: `${result.featuredCard.id}.png`,
+          });
+          result.embed!.setImage(`attachment://${result.featuredCard.id}.png`);
+          await interaction.editReply({ embeds: [result.embed!], files: [attachment] });
+        } else {
+          await interaction.editReply({ embeds: [result.embed!] });
+        }
         return;
       }
     } catch (err) {

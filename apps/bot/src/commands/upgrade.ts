@@ -5,6 +5,7 @@ import {
   calculateStats,
   calculatePowerScore,
 } from '@cjverse/game-logic';
+import { renderCardComposite } from '@cjverse/asset-pipeline';
 import { resolveCardById, getCardNotFoundError } from '../services/card-resolver';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -24,6 +25,7 @@ export interface UpgradeResult {
   remainingCrystals?: number;
   oldStats?: { maxHp: number; atk: number; def: number; spd: number; maxMana: number };
   newStats?: { maxHp: number; atk: number; def: number; spd: number; maxMana: number };
+  imageBuffer?: Buffer;
 }
 
 export async function handleUpgradeCommand(
@@ -124,13 +126,23 @@ export async function handleUpgradeCommand(
       console.warn('[Upgrade Command] Failed to update upgrade_card quest progress:', questErr);
     }
 
+    const finalCard = updatedCard || {
+      ...targetCard,
+      level: newLevel,
+      powerScore: newPowerScore,
+    };
+
+    // Render composite card image
+    let imageBuffer: Buffer | undefined;
+    try {
+      imageBuffer = await renderCardComposite(finalCard as any);
+    } catch (err) {
+      console.warn('[Upgrade Command] Failed to render composite:', err);
+    }
+
     return {
       success: true,
-      card: updatedCard || {
-        ...targetCard,
-        level: newLevel,
-        powerScore: newPowerScore,
-      },
+      card: finalCard,
       oldLevel,
       newLevel,
       oldPowerScore,
@@ -139,6 +151,7 @@ export async function handleUpgradeCommand(
       remainingCrystals,
       oldStats,
       newStats,
+      imageBuffer,
     };
   } catch (err) {
     console.error('[Upgrade Command Error]:', err);

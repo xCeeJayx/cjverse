@@ -131,7 +131,7 @@ function CardTile({
             : 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
           transition: tilt.isHovered ? 'transform 0.08s ease-out' : 'transform 0.35s ease-out',
         }}
-        className={`relative flex flex-col justify-between h-[360px] rounded-2xl p-4 bg-slate-900/90 backdrop-blur-md border ${variantStyle.border} ${variantStyle.glow} cursor-pointer transition-shadow duration-300 overflow-hidden shadow-xl`}
+        className={`relative flex flex-col justify-between h-[390px] rounded-2xl p-3.5 bg-slate-900/90 backdrop-blur-md border ${variantStyle.border} ${variantStyle.glow} cursor-pointer transition-shadow duration-300 overflow-hidden shadow-xl`}
       >
         {/* Holographic Sheen Overlay */}
         {tilt.isHovered && (
@@ -152,7 +152,7 @@ function CardTile({
         <div className="relative z-10 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <span className="font-mono text-[11px] font-bold text-cyan-300 bg-slate-950/80 px-2 py-0.5 rounded-md border border-cyan-500/30">
-              {card.id}
+              #{card.id.replace(/^#/, '')}
             </span>
             <span
               className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${variantStyle.badgeBg}`}
@@ -163,36 +163,37 @@ function CardTile({
 
           {isEquipped && (
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-500/50 shadow-sm flex items-center gap-1">
-              <span>●</span>
-              <span>{isEquipped}</span>
+              <span>•</span>
+              <span>{isEquipped.toUpperCase()}</span>
             </span>
           )}
         </div>
 
-        {/* Card Center: Race Illustration & Elemental Visual */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center my-3">
-          <div className="w-24 h-24 rounded-2xl bg-gradient-to-b from-slate-800 to-slate-950 border border-slate-700/80 flex items-center justify-center text-4xl shadow-inner relative group-hover:scale-105 transition-transform duration-200">
-            <span className="filter drop-shadow-md">{elementStyle.icon}</span>
-            <span className="absolute -bottom-2 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[10px] font-bold text-slate-300">
-              {card.race}
-            </span>
-          </div>
-
-          <h3 className="text-base font-black text-white mt-3 tracking-wide uppercase">
-            {card.variant} {card.race}
-          </h3>
-
-          <div className="flex items-center gap-2 mt-1">
-            <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${elementStyle.bg} ${elementStyle.text}`}
-            >
-              {elementStyle.icon} {card.element} ({card.elementTier})
-            </span>
+        {/* Card Body: Responsive Card Composite Art Image */}
+        <div className="relative z-10 flex-1 w-full my-2 flex items-center justify-center overflow-hidden rounded-xl bg-slate-950/70 border border-slate-800/80 group-hover:border-slate-700 transition-colors">
+          <img
+            src={`/api/cards/${card.id.replace(/^#/, '')}/image`}
+            alt={`${card.race} ${card.variant}`}
+            loading="lazy"
+            className="w-full h-full max-h-[225px] object-contain group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              // Fallback gracefully if image is still generating
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+            }}
+          />
+          {/* Subtle loading/fallback skeleton */}
+          <div className="hidden flex flex-col items-center justify-center p-3 text-center w-full h-full min-h-[170px]">
+            <div className="w-14 h-14 rounded-xl bg-slate-800 flex items-center justify-center text-3xl mb-1.5 shadow-inner">
+              {elementStyle.icon}
+            </div>
+            <span className="text-xs font-black uppercase text-slate-200 tracking-wide">{card.race}</span>
+            <span className="text-[10px] font-mono text-cyan-400">#{card.id.replace(/^#/, '')}</span>
           </div>
         </div>
 
-        {/* Card Footer: Level, Stage, Power Score */}
-        <div className="relative z-10 pt-3 border-t border-slate-800/90 flex items-end justify-between">
+        {/* Sub-stats Ribbon: Level, Stage, Power Score */}
+        <div className="relative z-10 pt-2.5 border-t border-slate-800/90 flex items-end justify-between">
           <div>
             <div className="text-[10px] font-semibold text-slate-400">
               Lv. {card.level} • Stage {card.evolutionStage}
@@ -212,7 +213,7 @@ function CardTile({
         </div>
       </div>
 
-      {/* Hover Quick Action Buttons bar */}
+      {/* Quick Action Buttons bar */}
       <div className="mt-2 grid grid-cols-2 gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
         <button
           type="button"
@@ -220,9 +221,9 @@ function CardTile({
             e.stopPropagation();
             onOpenActions(card);
           }}
-          className="py-1 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold rounded-lg border border-slate-700 transition-all flex items-center justify-center gap-1"
+          className="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold rounded-lg border border-slate-700 transition-all flex items-center justify-center gap-1 shadow-sm"
         >
-          <span>⚡</span>
+          <span>+</span>
           <span>Equip</span>
         </button>
         <button
@@ -231,7 +232,7 @@ function CardTile({
             e.stopPropagation();
             onViewStats(card);
           }}
-          className="py-1 px-2 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 text-[11px] font-bold rounded-lg border border-indigo-500/40 transition-all flex items-center justify-center gap-1"
+          className="py-1.5 px-2 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 text-[11px] font-bold rounded-lg border border-indigo-500/40 transition-all flex items-center justify-center gap-1 shadow-sm"
         >
           <span>📊</span>
           <span>Stats</span>

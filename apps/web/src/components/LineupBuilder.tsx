@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { CardRecord, UserActiveLineup } from '@cjverse/db';
+import { CardDisplay } from './CardDisplay';
 
 export type LineupSlotType = 'vanguard' | 'striker' | 'conduit';
 
@@ -219,34 +220,40 @@ export function LineupBuilder({
 
               {/* Slot Body */}
               {equippedCard ? (
-                <div className="flex-1 flex flex-col justify-center py-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-xs font-bold text-cyan-300 bg-slate-800/80 px-1.5 py-0.5 rounded border border-cyan-500/30">
-                          {equippedCard.id}
-                        </span>
-                        <span className={`text-xs font-extrabold uppercase ${variantStyle.text}`}>
-                          {equippedCard.variant}
-                        </span>
-                      </div>
-
-                      <div className="text-base font-black text-white truncate tracking-wide">
-                        {equippedCard.race}
-                      </div>
-
-                      <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                        <span>Lv. {equippedCard.level}</span>
-                        <span>•</span>
-                        <span>Stage {equippedCard.evolutionStage}</span>
-                      </div>
+                <div className="flex-1 flex items-center gap-4 py-2">
+                  <div className="flex-shrink-0">
+                    <CardDisplay
+                      card={equippedCard}
+                      size="sm"
+                      showFoilEffect={true}
+                      className="shadow-md"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-xs font-bold text-cyan-300 bg-slate-800/80 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                        {equippedCard.id}
+                      </span>
+                      <span className={`text-xs font-extrabold uppercase ${variantStyle.text}`}>
+                        {equippedCard.variant}
+                      </span>
                     </div>
 
-                    <div className="text-right flex flex-col items-end">
-                      <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                    <div className="text-base font-black text-white truncate tracking-wide">
+                      {equippedCard.race}
+                    </div>
+
+                    <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                      <span>Lv. {equippedCard.level}</span>
+                      <span>•</span>
+                      <span>Stage {equippedCard.evolutionStage}</span>
+                    </div>
+
+                    <div className="mt-2 text-left">
+                      <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
                         Power
                       </div>
-                      <div className="text-lg font-black text-amber-300 tracking-tight flex items-center gap-1">
+                      <div className="text-base font-black text-amber-300 tracking-tight flex items-center gap-1">
                         <span>⚡</span>
                         <span>{equippedCard.powerScore.toLocaleString()}</span>
                       </div>

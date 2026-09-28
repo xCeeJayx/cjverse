@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@cjverse/asset-pipeline": "workspace:*",
     "@cjverse/db": "workspace:*",
     "@cjverse/game-logic": "workspace:*",
     "jose": "^6.2.12",
