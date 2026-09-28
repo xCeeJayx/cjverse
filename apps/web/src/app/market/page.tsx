@@ -210,7 +210,7 @@ function MarketCardTile({
             <h3 className="text-sm font-black text-white tracking-wide truncate">
               {card.variant.toUpperCase()} {card.race.toUpperCase()}
             </h3>
-            <span className="text-[10px] font-mono text-slate-400">#{card.id}</span>
+            <span className="text-[10px] font-mono text-slate-400">{card.id.replace(/#/g, '')}</span>
           </div>
 
           {/* Badges: Element & Variant */}

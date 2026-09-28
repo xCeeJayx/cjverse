@@ -90,7 +90,7 @@ export function CardDisplay({
           <div className="text-xs font-black uppercase text-white">
             {card.variant} {card.race}
           </div>
-          <div className="text-[10px] text-slate-400">#{card.id}</div>
+          <div className="text-[10px] text-slate-400">{card.id.replace(/#/g, '')}</div>
         </div>
       )}
 

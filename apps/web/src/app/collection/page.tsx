@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Navbar } from '../../components/Navbar';
 import { LineupBuilder, LineupSlotType } from '../../components/LineupBuilder';
+import { CardBinderItem } from '../../components/CardBinderItem';
 import { CardRecord, UserActiveLineup } from '@cjverse/db';
 import { calculateStats, getEvolutionStageName } from '@cjverse/game-logic';
 import { getDevSessionFromQuery, getClientSessionCookie } from '../../lib/auth-session';
@@ -80,166 +81,8 @@ const ELEMENT_STYLES: Record<string, { bg: string; text: string; icon: string }>
   Chaos: { bg: 'bg-red-950/80 border-fuchsia-500/50', text: 'text-fuchsia-300', icon: '💥' },
 };
 
-function CardTile({
-  card,
-  isEquipped,
-  onOpenActions,
-  onViewStats,
-  onEquipDirect,
-  isUpdating,
-}: CardTileProps) {
-  const [tilt, setTilt] = useState({ x: 0, y: 0, sheenX: 50, sheenY: 50, isHovered: false });
-
-  const variantStyle = VARIANT_COLORS[card.variant] || VARIANT_COLORS.Normal;
-  const elementStyle = ELEMENT_STYLES[card.element] || {
-    bg: 'bg-slate-800 border-slate-600',
-    text: 'text-slate-300',
-    icon: '⚡',
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-
-    // Subtle 3D perspective tilt
-    setTilt({
-      x: -(y * 14),
-      y: x * 14,
-      sheenX: (x + 0.5) * 100,
-      sheenY: (y + 0.5) * 100,
-      isHovered: true,
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setTilt({ x: 0, y: 0, sheenX: 50, sheenY: 50, isHovered: false });
-  };
-
-  return (
-    <div
-      className="relative select-none group"
-      style={{ perspective: '1000px' }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-    >
-      <div
-        onClick={() => onOpenActions(card)}
-        style={{
-          transform: tilt.isHovered
-            ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(1.025, 1.025, 1.025)`
-            : 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
-          transition: tilt.isHovered ? 'transform 0.08s ease-out' : 'transform 0.35s ease-out',
-        }}
-        className={`relative flex flex-col justify-between h-[390px] rounded-2xl p-3.5 bg-slate-900/90 backdrop-blur-md border ${variantStyle.border} ${variantStyle.glow} cursor-pointer transition-shadow duration-300 overflow-hidden shadow-xl`}
-      >
-        {/* Holographic Sheen Overlay */}
-        {tilt.isHovered && (
-          <div
-            className="absolute inset-0 pointer-events-none rounded-2xl mix-blend-color-dodge transition-opacity duration-200 opacity-60 z-20"
-            style={{
-              background: `radial-gradient(circle at ${tilt.sheenX}% ${tilt.sheenY}%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 50%, transparent 80%)`,
-            }}
-          />
-        )}
-
-        {/* Shimmer Ambient Gradient */}
-        <div
-          className={`absolute inset-0 bg-gradient-to-tr ${variantStyle.foilOverlay} opacity-30 pointer-events-none`}
-        />
-
-        {/* Card Header: 6-char ID, Variant, and Equipped Tag */}
-        <div className="relative z-10 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="font-mono text-[11px] font-bold text-cyan-300 bg-slate-950/80 px-2 py-0.5 rounded-md border border-cyan-500/30">
-              #{card.id.replace(/^#/, '')}
-            </span>
-            <span
-              className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${variantStyle.badgeBg}`}
-            >
-              {card.variant}
-            </span>
-          </div>
-
-          {isEquipped && (
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-500/50 shadow-sm flex items-center gap-1">
-              <span>•</span>
-              <span>{isEquipped.toUpperCase()}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Card Body: Responsive Card Composite Art Image */}
-        <div className="relative z-10 flex-1 w-full my-2 flex items-center justify-center overflow-hidden rounded-xl bg-slate-950/70 border border-slate-800/80 group-hover:border-slate-700 transition-colors">
-          <img
-            src={`/api/cards/${card.id.replace(/^#/, '')}/image`}
-            alt={`${card.race} ${card.variant}`}
-            loading="lazy"
-            className="w-full h-full max-h-[225px] object-contain group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              // Fallback gracefully if image is still generating
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-            }}
-          />
-          {/* Subtle loading/fallback skeleton */}
-          <div className="hidden flex flex-col items-center justify-center p-3 text-center w-full h-full min-h-[170px]">
-            <div className="w-14 h-14 rounded-xl bg-slate-800 flex items-center justify-center text-3xl mb-1.5 shadow-inner">
-              {elementStyle.icon}
-            </div>
-            <span className="text-xs font-black uppercase text-slate-200 tracking-wide">{card.race}</span>
-            <span className="text-[10px] font-mono text-cyan-400">#{card.id.replace(/^#/, '')}</span>
-          </div>
-        </div>
-
-        {/* Sub-stats Ribbon: Level, Stage, Power Score */}
-        <div className="relative z-10 pt-2.5 border-t border-slate-800/90 flex items-end justify-between">
-          <div>
-            <div className="text-[10px] font-semibold text-slate-400">
-              Lv. {card.level} • Stage {card.evolutionStage}
-            </div>
-            <div className="text-[10px] text-slate-500 capitalize">
-              {getEvolutionStageName(card.evolutionStage)}
-            </div>
-          </div>
-
-          <div className="text-right">
-            <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Power</div>
-            <div className="text-base font-black text-amber-300 tracking-tight flex items-center justify-end gap-1">
-              <span>⚡</span>
-              <span>{card.powerScore.toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Action Buttons bar */}
-      <div className="mt-2 grid grid-cols-2 gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenActions(card);
-          }}
-          className="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold rounded-lg border border-slate-700 transition-all flex items-center justify-center gap-1 shadow-sm"
-        >
-          <span>+</span>
-          <span>Equip</span>
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewStats(card);
-          }}
-          className="py-1.5 px-2 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 text-[11px] font-bold rounded-lg border border-indigo-500/40 transition-all flex items-center justify-center gap-1 shadow-sm"
-        >
-          <span>📊</span>
-          <span>Stats</span>
-        </button>
-      </div>
-    </div>
-  );
+function CardTile(props: CardTileProps) {
+  return <CardBinderItem {...props} />;
 }
 
 // Detailed Stats Modal Component
@@ -314,7 +157,7 @@ function StatsModal({
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
-                {card.id}
+                {card.id.replace(/#/g, '')}
               </span>
               <span
                 className={`text-xs font-black uppercase px-2 py-0.5 rounded border ${variantStyle.badgeBg}`}
@@ -479,7 +322,7 @@ function QuickActionMenu({
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
           <div>
             <span className="font-mono text-xs font-bold text-cyan-400 bg-slate-800 px-1.5 py-0.5 rounded">
-              {card.id}
+              {card.id.replace(/#/g, '')}
             </span>
             <div className="text-sm font-black text-white mt-1 uppercase">
               {card.variant} {card.race}
@@ -913,7 +756,7 @@ function CollectionContent() {
                   : null;
 
               return (
-                <CardTile
+                <CardBinderItem
                   key={card.id}
                   card={card}
                   isEquipped={isEquippedSlot}

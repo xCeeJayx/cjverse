@@ -289,7 +289,7 @@ export function PackOpeningModal({
                         {/* Header: ID & Variant badge */}
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-mono font-black text-cyan-400 bg-slate-950/80 px-2 py-0.5 rounded-md border border-cyan-500/30">
-                            #{card.id}
+                            {card.id.replace(/#/g, '')}
                           </span>
                           <span
                             className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
@@ -387,7 +387,7 @@ export function PackOpeningModal({
                 >
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-mono font-bold text-cyan-400">
-                      #{card.id}
+                      {card.id.replace(/#/g, '')}
                     </span>
                     <span className="font-bold text-slate-300 text-[10px] uppercase">
                       {card.variant}

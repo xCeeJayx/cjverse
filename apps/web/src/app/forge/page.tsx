@@ -545,7 +545,7 @@ function ForgeContent() {
                           <div className="text-sm font-black text-white tracking-wide uppercase">
                             {slotted.variant} {slotted.race}
                           </div>
-                          <div className="text-[11px] text-slate-400">#{slotted.id}</div>
+                          <div className="text-[11px] text-slate-400">{slotted.id.replace(/#/g, '')}</div>
                         </div>
 
                         <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
@@ -705,7 +705,7 @@ function ForgeContent() {
                         <div className="text-xs font-black text-white uppercase tracking-wider">
                           {card.variant} {card.race}
                         </div>
-                        <div className="text-[10px] text-slate-400">#{card.id}</div>
+                        <div className="text-[10px] text-slate-400">{card.id.replace(/#/g, '')}</div>
                       </div>
 
                       <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-1 text-[11px]">
@@ -810,7 +810,7 @@ function ForgeContent() {
                         <div className="text-xs font-black text-white truncate mt-1">
                           {card.variant} {card.race}
                         </div>
-                        <div className="text-[10px] text-slate-400">#{card.id}</div>
+                        <div className="text-[10px] text-slate-400">{card.id.replace(/#/g, '')}</div>
                       </div>
                       <div className="text-[10px] text-right font-bold text-amber-400">
                         ⚡ {card.powerScore}
@@ -889,7 +889,7 @@ function ForgeContent() {
                 <div className="text-base font-black text-white uppercase tracking-wider">
                   {fusedCardResult.variant} {fusedCardResult.race}
                 </div>
-                <div className="text-xs text-slate-400">#{fusedCardResult.id}</div>
+                <div className="text-xs text-slate-400">{fusedCardResult.id.replace(/#/g, '')}</div>
               </div>
 
               <div className="text-xs font-black text-amber-400 bg-amber-950/60 py-1 rounded-lg border border-amber-500/30">
