@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
-import { db, users, cards, CardRecord, eq } from '@cjverse/db';
+import { db, users, cards, CardRecord, eq, recordQuestProgress } from '@cjverse/db';
 import {
   calculateStats,
   calculatePowerScore,
@@ -116,6 +116,13 @@ export async function handleUpgradeCommand(
       })
       .where(eq(cards.id, targetCard.id))
       .returning()) as CardRecord[];
+
+    // Quest Progression Hook: Upgrade Card
+    try {
+      await recordQuestProgress(userId, 'upgrade_card', 1);
+    } catch (questErr) {
+      console.warn('[Upgrade Command] Failed to update upgrade_card quest progress:', questErr);
+    }
 
     return {
       success: true,

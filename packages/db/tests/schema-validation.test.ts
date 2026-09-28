@@ -17,6 +17,9 @@ describe('Drizzle Database Schema Definitions', () => {
     expect(cols).toHaveProperty('wins');
     expect(cols).toHaveProperty('losses');
     expect(cols).toHaveProperty('activeLineup');
+    expect(cols).toHaveProperty('lastDailyClaim');
+    expect(cols).toHaveProperty('dailyStreak');
+    expect(cols).toHaveProperty('dailyQuests');
   });
 
   it('contains all required columns in cards table with 6-character id support', () => {

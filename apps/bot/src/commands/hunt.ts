@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import { generateCardFromSeed, generateCardId, CardEntity } from '@cjverse/game-logic';
 import { renderCardComposite } from '@cjverse/asset-pipeline';
-import { db, users, cards, CardRecord, eq } from '@cjverse/db';
+import { db, users, cards, CardRecord, eq, recordQuestProgress } from '@cjverse/db';
 import { checkAndSetCooldown, resetCooldowns } from '../services/cooldown';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -80,6 +80,13 @@ export async function handleHuntCommand(userId: string, username: string): Promi
     }
   } catch (err) {
     console.error('[Hunt Command Error - Insert Card]:', err);
+  }
+
+  // Quest Progression Hook: Hunt Cards
+  try {
+    await recordQuestProgress(userId, 'hunt_cards', 1);
+  } catch (questErr) {
+    console.warn('[Hunt Command] Failed to update hunt_cards quest progress:', questErr);
   }
 
   // 4. Pass persisted card to renderCardComposite

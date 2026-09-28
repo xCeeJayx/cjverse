@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../client';
-import { users, UserActiveLineup } from '../schema/users';
+import { users, UserActiveLineup, getDefaultDailyQuests } from '../schema/users';
 
 export type UserRecord = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -60,6 +60,8 @@ export async function ensureUser(id: string, username: string, avatarUrl?: strin
         strikerCardId: null,
         conduitCardId: null,
       },
+      dailyStreak: 0,
+      dailyQuests: getDefaultDailyQuests(),
     })
     .onConflictDoUpdate({
       target: users.id,
@@ -92,6 +94,9 @@ export async function ensureUser(id: string, username: string, avatarUrl?: strin
       strikerCardId: null,
       conduitCardId: null,
     },
+    dailyStreak: 0,
+    dailyQuests: getDefaultDailyQuests(),
+    lastDailyClaim: null,
     createdAt: new Date(),
   };
 }

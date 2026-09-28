@@ -37,11 +37,13 @@ export function Navbar({ initialUser }: NavbarProps) {
 
   const [isStartingBotMatch, setIsStartingBotMatch] = useState(false);
 
-  // Sync auth session from /api/auth/me
+  const [claimableQuestsCount, setClaimableQuestsCount] = useState<number>(0);
+
+  // Sync auth session from /api/auth/me and fetch quests status
   useEffect(() => {
     let isMounted = true;
 
-    async function fetchSession() {
+    async function fetchSessionAndQuests() {
       try {
         // Check URL for ?as= query param (dev bypass)
         let asParam: string | null = null;
@@ -60,33 +62,51 @@ export function Navbar({ initialUser }: NavbarProps) {
               crystals: devSession.crystals ?? 100,
             });
           }
-          return;
-        }
-
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.authenticated && data.user && isMounted) {
-            setUser({
-              userId: data.user.userId,
-              username: data.user.username,
-              avatar: data.user.avatar,
-              avatarUrl: data.user.avatarUrl || data.user.avatar,
-              crystals: data.user.crystals ?? 100,
-            });
+        } else {
+          const res = await fetch('/api/auth/me');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.authenticated && data.user && isMounted) {
+              setUser({
+                userId: data.user.userId,
+                username: data.user.username,
+                avatar: data.user.avatar,
+                avatarUrl: data.user.avatarUrl || data.user.avatar,
+                crystals: data.user.crystals ?? 100,
+              });
+            }
           }
         }
+
+        // Check quests status for active indicator / badge
+        const querySuffix = asParam ? `?as=${encodeURIComponent(asParam)}` : '';
+        const questsRes = await fetch(`/api/quests${querySuffix}`);
+        if (questsRes.ok && isMounted) {
+          const questData = await questsRes.json();
+          let claimable = 0;
+          if (questData.cooldown?.canClaim) {
+            claimable += 1;
+          }
+          if (Array.isArray(questData.quests)) {
+            for (const q of questData.quests) {
+              if (q.completed && !q.claimed) {
+                claimable += 1;
+              }
+            }
+          }
+          setClaimableQuestsCount(claimable);
+        }
       } catch (err) {
-        console.warn('[Navbar] Failed to fetch session:', err);
+        console.warn('[Navbar] Failed to fetch session or quests:', err);
       }
     }
 
-    fetchSession();
+    fetchSessionAndQuests();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [pathname]);
 
   const handleStartBotDuel = async () => {
     if (isStartingBotMatch) return;
@@ -129,6 +149,7 @@ export function Navbar({ initialUser }: NavbarProps) {
     { label: 'Arena', href: '/duel', icon: '⚔️' },
     { label: 'Collection / Team', href: '/collection', icon: '🎴' },
     { label: 'Market', href: '/market', icon: '🏪' },
+    { label: 'Quests', href: '/quests', icon: '📜', badgeCount: claimableQuestsCount },
     { label: 'Leaderboard', href: '/leaderboard', icon: '🏆' },
   ];
 
@@ -167,7 +188,7 @@ export function Navbar({ initialUser }: NavbarProps) {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
+                  className={`relative flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
                     isActive
                       ? 'bg-slate-800/90 text-white border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
@@ -175,6 +196,11 @@ export function Navbar({ initialUser }: NavbarProps) {
                 >
                   <span className="text-sm">{link.icon}</span>
                   <span>{link.label}</span>
+                  {link.badgeCount !== undefined && link.badgeCount > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-[10px] font-black rounded-full shadow-sm animate-pulse">
+                      {link.badgeCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}

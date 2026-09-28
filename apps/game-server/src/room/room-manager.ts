@@ -1,4 +1,4 @@
-import { db, matchRooms, users, cards, UserActiveLineup, eq, inArray } from '@cjverse/db';
+import { db, matchRooms, users, cards, UserActiveLineup, eq, inArray, recordQuestProgress } from '@cjverse/db';
 import { calculateStats, generateCardFromSeed, generateCardId, calculateElo } from '@cjverse/game-logic';
 import { InitiativeClock, CombatCardState } from '../engine/initiative-clock';
 import { resolveAction } from '../engine/action-resolver';
@@ -648,6 +648,13 @@ export class RoomManager {
           .where(eq(users.id, validWinnerId));
       } catch (err) {
         console.warn(`[RoomManager] Failed to update winner stats for ${validWinnerId}:`, err);
+      }
+
+      // Quest Progression Hook: Win Arena Duel
+      try {
+        await recordQuestProgress(validWinnerId, 'win_duel', 1);
+      } catch (questErr) {
+        console.warn(`[RoomManager] Failed to update win_duel quest for ${validWinnerId}:`, questErr);
       }
     }
 

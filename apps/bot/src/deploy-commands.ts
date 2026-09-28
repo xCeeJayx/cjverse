@@ -120,6 +120,33 @@ export const commands = [
     .addStringOption((opt) =>
       opt.setName('their_card_id').setDescription('The ID of the card you want from them').setRequired(true)
     ),
+  new SlashCommandBuilder()
+    .setName('daily')
+    .setDescription('Claim your daily crystal reward and maintain your login streak'),
+  new SlashCommandBuilder()
+    .setName('quests')
+    .setDescription('View and claim your daily quests')
+    .addSubcommand((sub) =>
+      sub
+        .setName('view')
+        .setDescription('View your active daily quests and progress')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('claim')
+        .setDescription('Claim the crystal reward for a completed daily quest')
+        .addStringOption((opt) =>
+          opt
+            .setName('quest_id')
+            .setDescription('The ID of the quest to claim')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Hunt 2 Cards (50 Crystals)', value: 'hunt_cards' },
+              { name: 'Win 1 Arena Duel (75 Crystals)', value: 'win_duel' },
+              { name: 'Upgrade Any Card (60 Crystals)', value: 'upgrade_card' }
+            )
+        )
+    ),
 ].map((cmd) => cmd.toJSON());
 
 export async function deployCommands(): Promise<unknown> {

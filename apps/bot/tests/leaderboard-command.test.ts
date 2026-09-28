@@ -21,30 +21,30 @@ describe('Discord Bot /leaderboard Command Handler', () => {
     await db.insert(users).values({
       id: user1,
       username: 'AlphaDuelist',
-      rating: 1450,
+      rating: 2450,
       wins: 20,
       losses: 5,
-      crystals: 500,
+      crystals: 88000,
       activeLineup: { vanguardCardId: null, strikerCardId: null, conduitCardId: null },
     });
 
     await db.insert(users).values({
       id: user2,
       username: 'BetaChampion',
-      rating: 1600,
+      rating: 2600,
       wins: 30,
       losses: 2,
-      crystals: 200,
+      crystals: 77000,
       activeLineup: { vanguardCardId: null, strikerCardId: null, conduitCardId: null },
     });
 
     await db.insert(users).values({
       id: user3,
       username: 'GammaWhale',
-      rating: 1200,
+      rating: 2200,
       wins: 10,
       losses: 10,
-      crystals: 9000,
+      crystals: 99000,
       activeLineup: { vanguardCardId: null, strikerCardId: null, conduitCardId: null },
     });
   });
@@ -54,14 +54,17 @@ describe('Discord Bot /leaderboard Command Handler', () => {
     expect(result.category).toBe('rating');
     expect(result.entries.length).toBeGreaterThanOrEqual(3);
 
-    // BetaChampion (1600) should be ranked higher than AlphaDuelist (1450) and GammaWhale (1200)
+    // BetaChampion (2600) should be ranked higher than AlphaDuelist (2450) and GammaWhale (2200)
     const betaIdx = result.entries.findIndex((e) => e.userId === user2);
     const alphaIdx = result.entries.findIndex((e) => e.userId === user1);
     const gammaIdx = result.entries.findIndex((e) => e.userId === user3);
 
+    expect(betaIdx).toBeGreaterThanOrEqual(0);
+    expect(alphaIdx).toBeGreaterThanOrEqual(0);
+    expect(gammaIdx).toBeGreaterThanOrEqual(0);
     expect(betaIdx).toBeLessThan(alphaIdx);
     expect(alphaIdx).toBeLessThan(gammaIdx);
-    expect(result.entries[betaIdx].rating).toBe(1600);
+    expect(result.entries[betaIdx].rating).toBe(2600);
     expect(result.entries[betaIdx].wins).toBe(30);
   });
 
@@ -69,14 +72,17 @@ describe('Discord Bot /leaderboard Command Handler', () => {
     const result = await handleLeaderboardCommand('crystals');
     expect(result.category).toBe('crystals');
 
-    // GammaWhale (9000) should be ranked higher than AlphaDuelist (500) and BetaChampion (200)
+    // GammaWhale (99000) should be ranked higher than AlphaDuelist (88000) and BetaChampion (77000)
     const gammaIdx = result.entries.findIndex((e) => e.userId === user3);
     const alphaIdx = result.entries.findIndex((e) => e.userId === user1);
     const betaIdx = result.entries.findIndex((e) => e.userId === user2);
 
+    expect(gammaIdx).toBeGreaterThanOrEqual(0);
+    expect(alphaIdx).toBeGreaterThanOrEqual(0);
+    expect(betaIdx).toBeGreaterThanOrEqual(0);
     expect(gammaIdx).toBeLessThan(alphaIdx);
     expect(alphaIdx).toBeLessThan(betaIdx);
-    expect(result.entries[gammaIdx].crystals).toBe(9000);
+    expect(result.entries[gammaIdx].crystals).toBe(99000);
   });
 
   it('formats medals correctly for 1st, 2nd, 3rd, and 4th+', () => {

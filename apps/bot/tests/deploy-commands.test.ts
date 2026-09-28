@@ -73,6 +73,18 @@ describe('Discord Slash Command Deployment Definitions', () => {
     expect(optNames).toContain('their_card_id');
   });
 
+  it('defines /daily and /quests commands correctly', () => {
+    const daily = commands.find((c) => c.name === 'daily');
+    expect(daily).toBeDefined();
+    expect(daily?.description).toContain('daily');
+
+    const quests = commands.find((c) => c.name === 'quests');
+    expect(quests).toBeDefined();
+    const subnames = quests?.options?.map((s: any) => s.name);
+    expect(subnames).toContain('view');
+    expect(subnames).toContain('claim');
+  });
+
   it('purges global commands when DISCORD_GUILD_ID is present', async () => {
     const { vi } = await import('vitest');
     const { deployCommands } = await import('../src/deploy-commands');

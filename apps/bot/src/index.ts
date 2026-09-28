@@ -37,6 +37,8 @@ import {
   handleTradeAccept,
   handleTradeDecline,
 } from './commands/trade';
+import { handleDailyCommand } from './commands/daily';
+import { handleQuestsCommand, handleQuestClaimCommand } from './commands/quests';
 
 // Safe environment variable loading from root and bot .env files
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -54,6 +56,8 @@ export * from './commands/evolve';
 export * from './commands/leaderboard';
 export * from './commands/market';
 export * from './commands/trade';
+export * from './commands/daily';
+export * from './commands/quests';
 export * from './services/card-resolver';
 export * from './deploy-commands';
 
@@ -556,6 +560,67 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     }
     return;
   }
+
+  if (interaction.commandName === 'daily') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    try {
+      const result = await handleDailyCommand(interaction.user.id);
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply({ embeds: [result.embed] });
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ embeds: [result.embed] });
+      }
+    } catch (err) {
+      console.error('[Daily Command Error]:', err);
+      const fallback = '❌ Failed to claim daily reward. Please try again.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'quests') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    const subcommand = interaction.options.getSubcommand(false);
+
+    try {
+      if (subcommand === 'claim') {
+        const questId = interaction.options.getString('quest_id', true);
+        const result = await handleQuestClaimCommand(interaction.user.id, questId);
+        if (!result.success) {
+          await interaction.editReply(result.message);
+          return;
+        }
+        await interaction.editReply({ embeds: [result.embed!] });
+        return;
+      }
+
+      // Default or 'view' subcommand
+      const result = await handleQuestsCommand(interaction.user.id);
+      await interaction.editReply({
+        embeds: [result.embed],
+        components: result.components,
+      });
+    } catch (err) {
+      console.error('[Quests Command Error]:', err);
+      const fallback = '❌ Failed to fetch daily quests. Please try again.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
 }
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -578,6 +643,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.customId.startsWith('trade_decline_')) {
         const tradeId = interaction.customId.replace('trade_decline_', '');
         const result = await handleTradeDecline(tradeId, interaction.user.id);
+        if (!result.success) {
+          await interaction.reply({ content: result.message, ephemeral: true });
+          return;
+        }
+        await interaction.update({
+          embeds: [result.embed!],
+          components: [],
+        });
+        return;
+      }
+
+      if (interaction.customId.startsWith('quest_claim_')) {
+        const questId = interaction.customId.replace('quest_claim_', '');
+        const result = await handleQuestClaimCommand(interaction.user.id, questId);
         if (!result.success) {
           await interaction.reply({ content: result.message, ephemeral: true });
           return;
