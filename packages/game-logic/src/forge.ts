@@ -175,5 +175,6 @@ export function fuseCards(
     evolutionStage,
     level,
     powerScore,
+    gender: seed % 2 === 0 ? 'male' : 'female',
   };
 }

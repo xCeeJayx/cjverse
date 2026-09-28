@@ -299,6 +299,7 @@ export async function fuseThreeCards(
         level: newCardEntity.level,
         powerScore: newCardEntity.powerScore,
         seed: newCardEntity.seed,
+        gender: newCardEntity.gender || 'male',
       })
       .returning();
   });

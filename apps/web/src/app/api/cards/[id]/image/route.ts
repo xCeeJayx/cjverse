@@ -22,6 +22,7 @@ export async function GET(
     const pngBuffer = await renderCardComposite({
       id: card.id,
       race: card.race as any,
+      gender: card.gender as any,
       variant: card.variant as any,
       element: card.element,
       elementTier: card.elementTier as any,

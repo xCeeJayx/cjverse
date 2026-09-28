@@ -4,6 +4,8 @@ export type Variant = 'normal' | 'silver' | 'gold' | 'diamond' | 'rainbow';
 
 export type ElementTier = 'S' | 'A' | 'B' | 'C';
 
+export type Gender = 'male' | 'female';
+
 export interface BaseStats {
   hp: number;
   atk: number;
@@ -22,6 +24,7 @@ export interface CardEntity {
   evolutionStage: number;
   level: number;
   powerScore: number;
+  gender?: Gender;
   assetPaths?: {
     raceSlice: string;
     elementSlice: string;

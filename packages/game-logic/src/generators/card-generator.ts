@@ -1,4 +1,4 @@
-import { CardEntity, Race, Variant, ElementTier } from '../types/card';
+import { CardEntity, Race, Variant, ElementTier, Gender } from '../types/card';
 import { ELEMENT_TO_TIER } from '../constants/elements';
 import { calculatePowerScore } from '../calculator/stats';
 
@@ -13,6 +13,23 @@ const VARIANTS: { variant: Variant; weight: number }[] = [
 ];
 
 const ELEMENTS = Object.keys(ELEMENT_TO_TIER);
+
+export class SeededRNG {
+  private state: number;
+
+  constructor(seed: number) {
+    let s = (Math.abs(seed) || 12345) >>> 0;
+    // SplitMix32 mixer to distribute consecutive seed values uniformly
+    s = Math.imul(s ^ (s >>> 16), 0x85ebca6b) >>> 0;
+    s = Math.imul(s ^ (s >>> 13), 0xc2b2ae35) >>> 0;
+    this.state = (s ^ (s >>> 16)) >>> 0;
+  }
+
+  nextFloat(): number {
+    this.state = (1664525 * this.state + 1013904223) >>> 0;
+    return this.state / 4294967296;
+  }
+}
 
 export function generateCardId(length = 6): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // Alphanumeric without ambiguous characters (0, O, 1, I)
@@ -31,9 +48,11 @@ export function generateCardFromSeed(
     element?: string;
     race?: Race;
     evolutionStage?: number;
+    gender?: Gender;
   }
 ): CardEntity {
   const absSeed = Math.abs(Math.floor(seed));
+  const rng = new SeededRNG(absSeed);
 
   // Deterministic race selection
   const race = overrides?.race || RACES[absSeed % RACES.length];
@@ -56,6 +75,9 @@ export function generateCardFromSeed(
   const element = overrides?.element || ELEMENTS[(absSeed * 31) % ELEMENTS.length];
   const elementTier: ElementTier = ELEMENT_TO_TIER[element] || 'C';
 
+  // Deterministic gender roll (50/50)
+  const gender: 'male' | 'female' = overrides?.gender || (rng.nextFloat() < 0.5 ? 'male' : 'female');
+
   const evolutionStage = overrides?.evolutionStage || 1;
   const clampedLevel = Math.max(1, Math.floor(level));
 
@@ -75,6 +97,7 @@ export function generateCardFromSeed(
     elementTier,
     evolutionStage,
     level: clampedLevel,
-    powerScore
+    powerScore,
+    gender,
   };
 }

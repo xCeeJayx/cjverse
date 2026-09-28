@@ -27,6 +27,7 @@ export const cards = pgTable('cards', {
   level: integer('level').default(1).notNull(),
   powerScore: integer('power_score').notNull(),
   seed: integer('seed').notNull(),
+  gender: varchar('gender', { length: 8 }).notNull().default('male'),
   assetPaths: jsonb('asset_paths').$type<CardAssetPaths>(),
   createdAt: timestamp('created_at').defaultNow().notNull()
 });

@@ -71,6 +71,7 @@ export async function buyAndOpenBoosterPack(
       level: card.level,
       powerScore: card.powerScore,
       seed: card.seed,
+      gender: card.gender || 'male',
     });
   }
 

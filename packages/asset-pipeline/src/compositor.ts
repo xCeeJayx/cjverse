@@ -13,6 +13,7 @@ export interface CardCompositeInput {
   id?: string;
   name?: string;
   race: string;
+  gender?: 'male' | 'female' | string;
   variant: string;
   element: string;
   elementTier?: string;
@@ -56,6 +57,67 @@ export function resolveAssetPath(
 }
 
 /**
+ * Resolves character artwork path based on the exact fallback cascade:
+ * 1. packages/asset-pipeline/assets/characters/${card.race}/${card.race}_${card.gender}_${card.element}.png
+ * 2. packages/asset-pipeline/assets/characters/${card.race}_${card.gender}_${card.element}.png
+ * 3. Neutral element fallback: packages/asset-pipeline/assets/characters/${card.race}/${card.race}_${card.gender}.png
+ * 4. Base race fallback: packages/asset-pipeline/assets/characters/${card.race}.png
+ * 5. Procedural canvas fallback if no file exists (returns null).
+ */
+export function resolveCharacterArtworkPath(
+  race: string,
+  gender: string = 'male',
+  element: string,
+  assetDirectory?: string
+): string | null {
+  const r = (race || 'human').toLowerCase();
+  const g = (gender || 'male').toLowerCase();
+  const e = (element || 'fire').toLowerCase();
+
+  // Cascade list in order of priority:
+  const relativeCascade: string[] = [
+    `${r}/${r}_${g}_${e}.png`,
+    `${r}_${g}_${e}.png`,
+    `${r}/${r}_${g}.png`,
+    `${r}_${g}.png`,
+    `${r}.png`,
+    `${r}/${r}.png`,
+  ];
+
+  for (const relPath of relativeCascade) {
+    const candidates: string[] = [];
+
+    if (assetDirectory) {
+      candidates.push(
+        path.resolve(assetDirectory, 'characters', relPath),
+        path.resolve(assetDirectory, relPath),
+        path.resolve(process.cwd(), assetDirectory, 'characters', relPath),
+        path.resolve(process.cwd(), assetDirectory, relPath)
+      );
+    }
+
+    candidates.push(
+      path.resolve(process.cwd(), 'packages/asset-pipeline/assets/characters', relPath),
+      path.resolve(__dirname, '../assets/characters', relPath),
+      path.resolve(__dirname, '../../assets/characters', relPath),
+      path.resolve(process.cwd(), 'assets/characters', relPath)
+    );
+
+    for (const cand of candidates) {
+      try {
+        if (fs.existsSync(cand) && fs.statSync(cand).isFile() && fs.statSync(cand).size > 0) {
+          return cand;
+        }
+      } catch {
+        // Continue searching candidates
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Determines card role from explicit parameter, or assigns based on race archetype.
  */
 export function getCardRole(card: { role?: string; race?: string }): {
@@ -93,6 +155,7 @@ export async function renderCardComposite(
   const card: CardEntity = {
     id: cardInput.id || 'C00000',
     race: (cardInput.race || 'human') as any,
+    gender: (cardInput.gender as any) || 'male',
     variant: (cardInput.variant || 'normal') as any,
     element: cardInput.element || 'fire',
     elementTier: (cardInput.elementTier || 'C') as any,
@@ -122,11 +185,18 @@ export async function renderCardComposite(
     'elements',
     `${card.element.toLowerCase()}.png`
   );
-  const raceSlicePath = resolveAssetPath(
-    assetDirectory,
-    'races',
-    `${card.race.toLowerCase()}.png`
-  );
+  const characterSlicePath =
+    resolveCharacterArtworkPath(
+      card.race,
+      card.gender || 'male',
+      card.element,
+      assetDirectory
+    ) ||
+    resolveAssetPath(
+      assetDirectory,
+      'races',
+      `${card.race.toLowerCase()}.png`
+    );
   const frameSlicePath = resolveAssetPath(
     assetDirectory,
     'frames',
@@ -159,9 +229,9 @@ export async function renderCardComposite(
   // LAYER 2: Character Archetype Visual
   // ==========================================
   let charLoaded = false;
-  if (raceSlicePath) {
+  if (characterSlicePath) {
     try {
-      const img = await loadImage(raceSlicePath);
+      const img = await loadImage(characterSlicePath);
       ctx.drawImage(img, 100, 180, 400, 420);
       charLoaded = true;
     } catch {

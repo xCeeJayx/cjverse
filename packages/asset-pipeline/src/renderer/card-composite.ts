@@ -7,7 +7,7 @@ import { ELEMENT_COLORS, VARIANT_BORDER_COLORS } from '../constants/theme';
 /**
  * Attempt to locate an existing image slice file across common path structures
  */
-function resolveAssetPath(assetDirectory: string, category: string, filename: string): string | null {
+export function resolveAssetPath(assetDirectory: string, category: string, filename: string): string | null {
   try {
     if (!assetDirectory) return null;
 
@@ -29,6 +29,67 @@ function resolveAssetPath(assetDirectory: string, category: string, filename: st
   return null;
 }
 
+/**
+ * Resolves character artwork path based on the exact fallback cascade:
+ * 1. packages/asset-pipeline/assets/characters/${card.race}/${card.race}_${card.gender}_${card.element}.png
+ * 2. packages/asset-pipeline/assets/characters/${card.race}_${card.gender}_${card.element}.png
+ * 3. Neutral element fallback: packages/asset-pipeline/assets/characters/${card.race}/${card.race}_${card.gender}.png
+ * 4. Base race fallback: packages/asset-pipeline/assets/characters/${card.race}.png
+ * 5. Procedural canvas fallback if no file exists (returns null).
+ */
+export function resolveCharacterArtworkPath(
+  race: string,
+  gender: string = 'male',
+  element: string,
+  assetDirectory?: string
+): string | null {
+  const r = (race || 'human').toLowerCase();
+  const g = (gender || 'male').toLowerCase();
+  const e = (element || 'fire').toLowerCase();
+
+  // Cascade list in order of priority:
+  const relativeCascade: string[] = [
+    `${r}/${r}_${g}_${e}.png`,
+    `${r}_${g}_${e}.png`,
+    `${r}/${r}_${g}.png`,
+    `${r}_${g}.png`,
+    `${r}.png`,
+    `${r}/${r}.png`,
+  ];
+
+  for (const relPath of relativeCascade) {
+    const candidates: string[] = [];
+
+    if (assetDirectory) {
+      candidates.push(
+        path.resolve(assetDirectory, 'characters', relPath),
+        path.resolve(assetDirectory, relPath),
+        path.resolve(process.cwd(), assetDirectory, 'characters', relPath),
+        path.resolve(process.cwd(), assetDirectory, relPath)
+      );
+    }
+
+    candidates.push(
+      path.resolve(process.cwd(), 'packages/asset-pipeline/assets/characters', relPath),
+      path.resolve(__dirname, '../../assets/characters', relPath),
+      path.resolve(process.cwd(), 'assets/characters', relPath),
+      path.resolve(__dirname, '../assets/characters', relPath)
+    );
+
+    for (const cand of candidates) {
+      try {
+        if (fs.existsSync(cand) && fs.statSync(cand).isFile() && fs.statSync(cand).size > 0) {
+          return cand;
+        }
+      } catch {
+        // Continue searching candidates
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function renderCardComposite(
   card: CardEntity,
   assetDirectory = 'apps/web/public/assets'
@@ -38,7 +99,9 @@ export async function renderCardComposite(
 
   // Attempt to resolve image slice paths
   const elementSlicePath = resolveAssetPath(assetDirectory, 'elements', `${card.element}.png`);
-  const raceSlicePath = resolveAssetPath(assetDirectory, 'races', `${card.race}.png`);
+  const characterSlicePath =
+    resolveCharacterArtworkPath(card.race, card.gender || 'male', card.element, assetDirectory) ||
+    resolveAssetPath(assetDirectory, 'races', `${card.race}.png`);
   const frameSlicePath = resolveAssetPath(assetDirectory, 'frames', `${card.variant}.png`);
 
   // 1. Render Background & Element Aura (Graceful procedural fallback)
@@ -56,19 +119,19 @@ export async function renderCardComposite(
     renderProceduralBackground(ctx, card);
   }
 
-  // 2. Render Race Sprite / Sigil (Graceful procedural fallback)
-  let raceLoaded = false;
-  if (raceSlicePath) {
+  // 2. Render Character Artwork (Graceful procedural silhouette fallback)
+  let characterLoaded = false;
+  if (characterSlicePath) {
     try {
-      const img = await loadImage(raceSlicePath);
+      const img = await loadImage(characterSlicePath);
       ctx.drawImage(img, 50, 100, 300, 300);
-      raceLoaded = true;
+      characterLoaded = true;
     } catch {
-      raceLoaded = false;
+      characterLoaded = false;
     }
   }
-  if (!raceLoaded) {
-    renderProceduralRaceSigil(ctx, card);
+  if (!characterLoaded) {
+    renderProceduralSilhouette(ctx, card);
   }
 
   // 3. Render Variant Frame Overlay (Graceful procedural fallback)
@@ -111,6 +174,43 @@ function renderProceduralBackground(ctx: any, card: CardEntity) {
   } catch {
     // Ignore canvas gradient error if unsupported
   }
+}
+
+function renderProceduralSilhouette(ctx: any, card: CardEntity) {
+  ctx.save();
+  const centerX = 200;
+  const centerY = 250;
+  const elem = (card.element || 'fire').toLowerCase();
+  const elemColor = ELEMENT_COLORS[elem] || '#38bdf8';
+
+  // Silhouette Drop Shadow
+  ctx.shadowColor = elemColor;
+  ctx.shadowBlur = 20;
+
+  // Base torso silhouette
+  ctx.fillStyle = '#111827';
+  ctx.beginPath();
+  ctx.moveTo(centerX - 60, centerY + 100);
+  ctx.lineTo(centerX - 45, centerY + 30);
+  ctx.lineTo(centerX - 25, centerY + 10);
+  ctx.lineTo(centerX + 25, centerY + 10);
+  ctx.lineTo(centerX + 45, centerY + 30);
+  ctx.lineTo(centerX + 60, centerY + 100);
+  ctx.closePath();
+  ctx.fill();
+
+  // Head / Crest silhouette
+  ctx.fillStyle = '#1f2937';
+  ctx.strokeStyle = elemColor;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY - 15, 25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Sigil Backdrop
+  renderProceduralRaceSigil(ctx, card);
+  ctx.restore();
 }
 
 function renderProceduralRaceSigil(ctx: any, card: CardEntity) {

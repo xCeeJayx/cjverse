@@ -72,6 +72,7 @@ export async function handleHuntCommand(userId: string, username: string): Promi
         level: card.level,
         powerScore: card.powerScore,
         seed: card.seed,
+        gender: card.gender || 'male',
       })
       .returning()) as CardRecord[];
 

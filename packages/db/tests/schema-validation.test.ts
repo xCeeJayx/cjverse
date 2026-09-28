@@ -32,6 +32,7 @@ describe('Drizzle Database Schema Definitions', () => {
     expect(cols).toHaveProperty('elementTier');
     expect(cols).toHaveProperty('powerScore');
     expect(cols).toHaveProperty('seed');
+    expect(cols).toHaveProperty('gender');
 
     const testId = generateCardId();
     expect(testId).toHaveLength(6);

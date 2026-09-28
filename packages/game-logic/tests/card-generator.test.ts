@@ -25,4 +25,25 @@ describe('Deterministic Card Generation from Seed', () => {
     expect(id).not.toContain('#');
     expect(id).not.toMatch(/[0O1I]/);
   });
+
+  it('deterministically rolls 50/50 gender and returns male or female', () => {
+    const card1 = generateCardFromSeed(12345);
+    expect(card1.gender).toBeDefined();
+    expect(['male', 'female']).toContain(card1.gender);
+
+    const card2 = generateCardFromSeed(12345);
+    expect(card2.gender).toBe(card1.gender);
+
+    // Test overrides
+    const femaleCard = generateCardFromSeed(12345, 1, { gender: 'female' });
+    expect(femaleCard.gender).toBe('female');
+
+    const maleCard = generateCardFromSeed(12345, 1, { gender: 'male' });
+    expect(maleCard.gender).toBe('male');
+
+    // Test both genders appear over a sample of seeds
+    const genders = new Set(Array.from({ length: 50 }, (_, i) => generateCardFromSeed(i).gender));
+    expect(genders.has('male')).toBe(true);
+    expect(genders.has('female')).toBe(true);
+  });
 });
