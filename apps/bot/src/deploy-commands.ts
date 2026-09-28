@@ -147,6 +147,28 @@ export const commands = [
             )
         )
     ),
+  new SlashCommandBuilder()
+    .setName('shop')
+    .setDescription('Browse booster packs and purchase them with crystals'),
+  new SlashCommandBuilder()
+    .setName('pack')
+    .setDescription('Buy and open booster packs to summon new cards')
+    .addSubcommand((sub) =>
+      sub
+        .setName('buy')
+        .setDescription('Purchase and immediately crack a booster pack')
+        .addStringOption((opt) =>
+          opt
+            .setName('type')
+            .setDescription('Booster pack type')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Standard Pack (150 💎 - 3 Cards)', value: 'standard' },
+              { name: 'Elemental Hoard (350 💎 - 3 Cards, Guaranteed Silver+)', value: 'elemental' },
+              { name: 'Ascendant Vault (750 💎 - 4 Cards, Guaranteed Gold+)', value: 'ascendant' }
+            )
+        )
+    ),
 ].map((cmd) => cmd.toJSON());
 
 export async function deployCommands(): Promise<unknown> {

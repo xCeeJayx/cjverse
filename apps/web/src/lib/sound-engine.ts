@@ -367,6 +367,110 @@ export class SoundEngine {
     });
   }
 
+  /**
+   * playPackTear(): Crunchy foil tear burst + resonant metallic sheen.
+   */
+  public playPackTear(): void {
+    if (this.muted) return;
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return;
+
+    const now = ctx.currentTime;
+    const bufferSize = ctx.sampleRate * 0.28;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const whiteNoise = ctx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(3200, now);
+    filter.frequency.exponentialRampToValueAtTime(700, now + 0.25);
+    filter.Q.setValueAtTime(4.0, now);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.4, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+    whiteNoise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    whiteNoise.start(now);
+    whiteNoise.stop(now + 0.28);
+
+    // Resonant chime finish
+    const chime = ctx.createOscillator();
+    chime.type = 'sine';
+    chime.frequency.setValueAtTime(880, now + 0.12);
+    chime.frequency.exponentialRampToValueAtTime(1760, now + 0.35);
+
+    const chimeGain = ctx.createGain();
+    chimeGain.gain.setValueAtTime(0.15, now + 0.12);
+    chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+    chime.connect(chimeGain);
+    chimeGain.connect(this.masterGain);
+    chime.start(now + 0.12);
+    chime.stop(now + 0.4);
+  }
+
+  /**
+   * playCardFlip(): Smooth whoosh + tactile card snap.
+   */
+  public playCardFlip(): void {
+    if (this.muted) return;
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(1100, now + 0.05);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.06);
+  }
+
+  /**
+   * playRareReveal(): Shimmering arpeggio for Gold/Diamond card pull.
+   */
+  public playRareReveal(): void {
+    if (this.muted) return;
+    const ctx = this.ensureContext();
+    if (!ctx || !this.masterGain) return;
+
+    const now = ctx.currentTime;
+    const notes = [587.33, 739.99, 880.0, 1174.66, 1479.98]; // D5, F#5, A5, D6, F#6
+    notes.forEach((freq, idx) => {
+      const noteTime = now + idx * 0.055;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.2, noteTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.45);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain!);
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.45);
+    });
+  }
+
   private playChord(frequencies: number[], startTime: number, duration: number, volume: number): void {
     if (!this.ctx || !this.masterGain) return;
 

@@ -39,6 +39,9 @@ import {
 } from './commands/trade';
 import { handleDailyCommand } from './commands/daily';
 import { handleQuestsCommand, handleQuestClaimCommand } from './commands/quests';
+import { handleShopCommand } from './commands/shop';
+import { handlePackBuyCommand } from './commands/pack';
+import { BoosterPackType } from '@cjverse/game-logic';
 
 // Safe environment variable loading from root and bot .env files
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -58,6 +61,8 @@ export * from './commands/market';
 export * from './commands/trade';
 export * from './commands/daily';
 export * from './commands/quests';
+export * from './commands/shop';
+export * from './commands/pack';
 export * from './services/card-resolver';
 export * from './deploy-commands';
 
@@ -621,6 +626,68 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     }
     return;
   }
+
+  if (interaction.commandName === 'shop') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    try {
+      const result = await handleShopCommand(interaction.user.id);
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply({
+          embeds: [result.embed],
+          components: result.components,
+        });
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({
+          embeds: [result.embed],
+          components: result.components,
+        });
+      }
+    } catch (err) {
+      console.error('[Shop Command Error]:', err);
+      const fallback = '❌ Failed to open shop. Please try again.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'pack') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    const subcommand = interaction.options.getSubcommand(false);
+
+    try {
+      if (subcommand === 'buy') {
+        const packType = interaction.options.getString('type', true) as BoosterPackType;
+        const result = await handlePackBuyCommand(interaction.user.id, packType);
+
+        if (!result.success) {
+          await interaction.editReply(result.message || '❌ Failed to purchase pack.');
+          return;
+        }
+
+        await interaction.editReply({ embeds: [result.embed!] });
+        return;
+      }
+    } catch (err) {
+      console.error('[Pack Command Error]:', err);
+      const fallback = '❌ An error occurred while opening the pack.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
 }
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -665,6 +732,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
           embeds: [result.embed!],
           components: [],
         });
+        return;
+      }
+
+      if (interaction.customId.startsWith('shop_buy_')) {
+        const packType = interaction.customId.replace('shop_buy_', '') as BoosterPackType;
+        await interaction.deferReply();
+        const result = await handlePackBuyCommand(interaction.user.id, packType);
+
+        if (!result.success) {
+          await interaction.editReply(result.message || '❌ Failed to purchase pack.');
+          return;
+        }
+
+        await interaction.editReply({ embeds: [result.embed!] });
         return;
       }
     } catch (btnErr) {

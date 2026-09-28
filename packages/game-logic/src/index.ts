@@ -6,3 +6,4 @@ export * from './generators/card-generator';
 export * from './calculator/stats';
 export * from './calculator/damage';
 export * from './calculator/elo';
+export * from './packs';

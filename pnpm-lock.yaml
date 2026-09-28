@@ -305,6 +305,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@cjverse/game-logic':
+        specifier: workspace:*
+        version: link:../game-logic
       dotenv:
         specifier: ^18.0.4
         version: 18.0.4

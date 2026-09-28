@@ -83,6 +83,15 @@ describe('Discord Slash Command Deployment Definitions', () => {
     const subnames = quests?.options?.map((s: any) => s.name);
     expect(subnames).toContain('view');
     expect(subnames).toContain('claim');
+
+    const shop = commands.find((c) => c.name === 'shop');
+    expect(shop).toBeDefined();
+    expect(shop?.description).toContain('booster packs');
+
+    const pack = commands.find((c) => c.name === 'pack');
+    expect(pack).toBeDefined();
+    const packSub = pack?.options?.find((s: any) => s.name === 'buy');
+    expect(packSub).toBeDefined();
   });
 
   it('purges global commands when DISCORD_GUILD_ID is present', async () => {

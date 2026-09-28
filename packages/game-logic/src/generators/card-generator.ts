@@ -23,29 +23,40 @@ export function generateCardId(length = 6): string {
   return result;
 }
 
-export function generateCardFromSeed(seed: number, level = 1): CardEntity {
+export function generateCardFromSeed(
+  seed: number,
+  level = 1,
+  overrides?: {
+    variant?: Variant;
+    element?: string;
+    race?: Race;
+    evolutionStage?: number;
+  }
+): CardEntity {
   const absSeed = Math.abs(Math.floor(seed));
 
   // Deterministic race selection
-  const race = RACES[absSeed % RACES.length];
+  const race = overrides?.race || RACES[absSeed % RACES.length];
 
-  // Deterministic variant selection (weighted 100)
-  const variantRoll = (absSeed * 17) % 100;
-  let currentWeight = 0;
-  let variant: Variant = 'normal';
-  for (const item of VARIANTS) {
-    currentWeight += item.weight;
-    if (variantRoll < currentWeight) {
-      variant = item.variant;
-      break;
+  // Deterministic variant selection (weighted 100) or override
+  let variant: Variant = overrides?.variant || 'normal';
+  if (!overrides?.variant) {
+    const variantRoll = (absSeed * 17) % 100;
+    let currentWeight = 0;
+    for (const item of VARIANTS) {
+      currentWeight += item.weight;
+      if (variantRoll < currentWeight) {
+        variant = item.variant;
+        break;
+      }
     }
   }
 
-  // Deterministic element selection
-  const element = ELEMENTS[(absSeed * 31) % ELEMENTS.length];
-  const elementTier: ElementTier = ELEMENT_TO_TIER[element];
+  // Deterministic element selection or override
+  const element = overrides?.element || ELEMENTS[(absSeed * 31) % ELEMENTS.length];
+  const elementTier: ElementTier = ELEMENT_TO_TIER[element] || 'C';
 
-  const evolutionStage = 1;
+  const evolutionStage = overrides?.evolutionStage || 1;
   const clampedLevel = Math.max(1, Math.floor(level));
 
   const powerScore = calculatePowerScore({
