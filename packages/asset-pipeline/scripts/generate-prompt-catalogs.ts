@@ -25,179 +25,215 @@ export const POSITIVE_ARM_ANATOMY_ENFORCER =
 export interface ElementTieredConfig {
   tier: 'S' | 'A' | 'B' | 'C';
   tierCategory: 'Legendary' | 'Primal' | 'Specialized' | 'Composite';
+  bgTierPrefix: 'mythical background with' | 'legendary background with' | 'epic background with' | 'rare background with';
   handAction: string;
   backgroundVfx: string;
   armorUpgrade: string;
+  maleCrown?: string;
+  femaleCrown?: string;
 }
 
 export const ELEMENT_TIERED_CONFIGS: Record<string, ElementTieredConfig> = {
-  // Tier S (Legendary) - Complex dimensional backgrounds
+  // --- TIER S (Legendary) ---
   void: {
     tier: 'S',
     tierCategory: 'Legendary',
+    bgTierPrefix: 'mythical background with',
+    maleCrown: 'floating heavy spiked imperial ethereal void-energy halo circlet hovering above brow',
+    femaleCrown: 'floating sleek high-arched ethereal void-energy tiara halo hovering above brow',
+    armorUpgrade: 'sovereign abyssal god-metal plate armor in royal deep purple and void-black velvet with polished platinum trims, floating levitating segmented shoulder pauldrons, and a regal flowing void-silk mantle',
     handAction: 'right hand crushing an imploding void sphere while left hand rests firmly on the hip plate',
-    backgroundVfx: 'complex dimensional background with deep purple event horizons, cosmic gravity distortion, and abyssal black holes',
-    armorUpgrade: 'sovereign abyssal god-metal plate armor overlays, floating levitating dragon-crest shoulder pauldrons, an ornate crowned draconic horn diadem, and a regal flowing void-silk mantle',
+    backgroundVfx: 'deep purple event horizons, cosmic gravity distortion, and abyssal black holes',
   },
   time: {
     tier: 'S',
     tierCategory: 'Legendary',
+    bgTierPrefix: 'mythical background with',
+    maleCrown: 'floating heavy spiked imperial chronos-energy halo circlet with rotating gear teeth',
+    femaleCrown: 'floating sleek high-arched chronos-energy tiara halo with glowing golden pendulum spikes',
+    armorUpgrade: 'transcendent chronos-forged astral plate in pristine astral white and celestial blue with gilded brass clockwork gears, floating gear-halo pauldrons, and a shifting molten-gold sash',
     handAction: 'raised right hand manipulating floating golden chronos dials while left hand rests poised on the belt plate',
-    backgroundVfx: 'complex dimensional background with glowing molten gold chronos gear arrays, ticking astral clock faces, and temporal distortion waves',
-    armorUpgrade: 'transcendent chronos-forged astral plate overlays, floating gilded gear-halo pauldrons, an intricate temporal clockwork diadem, and a shifting molten-gold sash',
+    backgroundVfx: 'glowing molten gold chronos gear arrays, ticking astral clock faces, and temporal distortion waves',
   },
   cosmic: {
     tier: 'S',
     tierCategory: 'Legendary',
+    bgTierPrefix: 'mythical background with',
+    maleCrown: 'floating heavy spiked imperial stellar corona halo circlet with orbiting starlight motes',
+    femaleCrown: 'floating sleek high-arched celestial stardust tiara halo glowing with astral light',
+    armorUpgrade: 'celestial star-forged platinum armor in deep indigo and shimmering midnight-violet with radiant stardust filigree, levitating galaxy-crested pauldrons, and a nebula-woven astral mantle',
     handAction: 'raised right hand cradling a swirling miniature spiral galaxy while left hand rests firmly on the side hip armor',
-    backgroundVfx: 'complex dimensional background with deep violet spiral galaxies, radiant star clusters, and stellar stardust nebulae',
-    armorUpgrade: 'celestial star-forged platinum armor overlays, levitating galaxy-crested pauldrons, glowing astral stardust filigree, and a deep violet nebula-woven mantle',
+    backgroundVfx: 'deep violet spiral galaxies, radiant star clusters, and stellar stardust nebulae',
   },
   arcane: {
     tier: 'S',
     tierCategory: 'Legendary',
+    bgTierPrefix: 'mythical background with',
+    maleCrown: 'floating heavy spiked imperial cyan glyph halo circlet radiating concentric spell runes',
+    femaleCrown: 'floating sleek high-arched crystalline mana tiara halo glowing with ethereal cyan light',
+    armorUpgrade: 'grand magus battle plate in deep sapphire and luminescent cyan with silver runic embroidery, levitating crystalline mana-shard pauldrons, hovering glowing glyph rings, and high-collared ethereal robes',
     handAction: 'outstretched right hand projecting a radiant cyan glyph circle while left hand rests securely on the waist plate',
-    backgroundVfx: 'complex dimensional background with concentric glowing cyan runic spell circles, floating arcane glyph matrices, and ethereal spell tomes',
-    armorUpgrade: 'grand magus runic battle plate overlays, levitating crystalline mana-shard pauldrons, hovering glowing glyph rings, and high-collared cyan ethereal robes',
+    backgroundVfx: 'concentric glowing cyan runic spell circles, floating arcane glyph matrices, and ethereal spell tomes',
   },
   chaos: {
     tier: 'S',
     tierCategory: 'Legendary',
+    bgTierPrefix: 'mythical background with',
+    maleCrown: 'floating heavy spiked imperial jagged rift-energy halo circlet with crackling glitch arcs',
+    femaleCrown: 'floating sleek high-arched volatile chaos tiara halo with flickering violet-crimson sparks',
+    armorUpgrade: 'reality-warping jagged obsidian god-plate in volatile violet-crimson and fractured black with blood-gold trims, hovering fractured rift-metal pauldrons, and shifting glitch-energy tassels',
     handAction: 'raised right hand gripping a volatile reality-fracturing rift while left hand rests steadily against the hip plate',
-    backgroundVfx: 'complex dimensional background with shattered reality rifts, jagged glitch-energy arcs, and volatile violet-crimson sparks',
-    armorUpgrade: 'reality-warping jagged obsidian god-plate overlays, hovering fractured rift-metal pauldrons, crowned barbed spikes, and shifting volatile glitch-energy tassels',
+    backgroundVfx: 'shattered reality rifts, jagged glitch-energy arcs, and volatile violet-crimson sparks',
   },
 
-  // Tier A (Primal) - Dynamic elemental tempests
+  // --- TIER A (Primal) ---
   fire: {
     tier: 'A',
     tierCategory: 'Primal',
+    bgTierPrefix: 'legendary background with',
+    armorUpgrade: 'high warlord battle regalia in burning crimson and volcanic obsidian with molten brass trims, heavy sculpted dragon-crest pauldrons, layered volcanic scale cuirass, glowing magma-vein runic channels pulsing across the chestplate, and a high-collared scorched war-mantle',
     handAction: 'raised right hand gripping an incandescent magma orb while left hand rests firmly on the side hip plate',
-    backgroundVfx: 'dynamic elemental tempest background with raging crimson infernos, molten magma cracks, and swirling blazing ember halos',
-    armorUpgrade: 'heavy sculpted crimson-gold dragon-crest pauldrons, layered overlapping volcanic drake-scale cuirass, glowing magma-vein runic channels pulsing across the chestplate, and a high-collared scorched war-mantle',
+    backgroundVfx: 'raging crimson infernos, molten magma cracks, and swirling blazing ember halos',
   },
   ice: {
     tier: 'A',
     tierCategory: 'Primal',
+    bgTierPrefix: 'legendary background with',
+    armorUpgrade: 'grand champion glacial battle plate in frosted cerulean and diamond-white with polished silver trims, sculpted ice-dragon crest pauldrons, layered frost scale mail, glowing sub-zero runes carved into the cuirass, and an arctic fur-lined mantle',
     handAction: 'thrust forward right hand condensing a glacial frost vortex while left hand rests anchored at the hip armor',
-    backgroundVfx: 'dynamic elemental tempest background with howling blizzard squalls, diamond frost fractures, and crystalline glacial shards',
-    armorUpgrade: 'sculpted glacial dragon-plate, jagged diamond-ice shoulder spires, layered frosted scale mail, glowing sub-zero frost runes carved into the cuirass, and an arctic fur-lined mantle',
+    backgroundVfx: 'howling blizzard squalls, diamond frost fractures, and crystalline glacial shards',
   },
   lightning: {
     tier: 'A',
     tierCategory: 'Primal',
+    bgTierPrefix: 'legendary background with',
+    armorUpgrade: 'high warlord storm battle plate in electric azure and deep thunder-navy with conductive gold trims, aerodynamic electrified crest pauldrons, crackling plasma conduit channels across the cuirass, and a tempest war-mantle',
     handAction: 'raised right claw channeling crackling azure plasma arcs while left hand rests grounded against the hip plate',
-    backgroundVfx: 'dynamic elemental tempest background with violent lightning strikes, high-voltage electric arcs, and ionized corona sparks',
-    armorUpgrade: 'aerodynamic electrified dragon-crest armor, jutting storm-fang pauldrons, conductive azure-gold scale plate, crackling plasma conduit channels, and a high-collared tempest cloak',
+    backgroundVfx: 'violent lightning strikes, high-voltage electric arcs, and ionized corona sparks',
   },
   shadow: {
     tier: 'A',
     tierCategory: 'Primal',
+    bgTierPrefix: 'legendary background with',
+    armorUpgrade: 'abyssal assassin-lord battle plate in midnight-black and muted violet with dark obsidian trims, sculpted night-beast pauldrons, blackened scale-weave cuirass, pulsing umbral shadow veins, and a tattered shroud of darkness',
     handAction: 'raised right hand weaving ribbons of solid dark abyss while left hand rests motionless against the waist plate',
-    backgroundVfx: 'dynamic elemental tempest background with churning abyssal smoke tendrils, suffocating darkness shrouds, and violet phantom glow',
-    armorUpgrade: 'ornate abyssal assassin-lord battle plate, sculpted night-drake pauldrons, blackened scale-weave cuirass, pulsing umbral shadow veins, and a tattered shroud of darkness',
+    backgroundVfx: 'churning abyssal smoke tendrils, suffocating darkness shrouds, and violet phantom glow',
   },
   light: {
     tier: 'A',
     tierCategory: 'Primal',
+    bgTierPrefix: 'legendary background with',
+    armorUpgrade: 'solar-crested paladin battle plate in immaculate pearl-white and radiant gold with reflective crystal trims, gleaming winged pauldrons, holy sunburst rune matrices across the breastplate, and a flowing ivory war-mantle',
     handAction: 'uplifted right hand unleashing a blinding solar corona while left hand rests calmly against the side armor',
-    backgroundVfx: 'dynamic elemental tempest background with radiant blinding solar rays, celestial light pillars, and holy prismatic halos',
-    armorUpgrade: 'radiant solar-crested paladin dragon armor, gleaming gilded wing pauldrons, holy reflective breastplate, glowing sunburst rune matrices, and an immaculate ivory war-mantle',
+    backgroundVfx: 'radiant blinding solar rays, celestial light pillars, and holy prismatic halos',
   },
   nature: {
     tier: 'A',
     tierCategory: 'Primal',
+    bgTierPrefix: 'legendary background with',
+    armorUpgrade: 'verdant battle regalia in deep forest emerald and living ironwood-brown with amber trims, petrified bark shoulder pauldrons, living thorned vine-wrapped cuirass, glowing emerald runic channels, and a blooming druidic war-cloak',
     handAction: 'curved right hand sprouting bioluminescent thorned vines while left hand rests planted on the hip plate',
-    backgroundVfx: 'dynamic elemental tempest background with swirling emerald pollen tempests, glowing bioluminescent vines, and blooming thorny brambles',
-    armorUpgrade: 'verdant dragon-scale battle regalia, petrified ironwood pauldrons, living thorned vine-wrapped cuirass, glowing emerald runic carvings, and a blossoming druidic war-cloak',
+    backgroundVfx: 'swirling emerald pollen tempests, glowing bioluminescent vines, and blooming thorny brambles',
   },
   blood: {
     tier: 'A',
     tierCategory: 'Primal',
+    bgTierPrefix: 'legendary background with',
+    armorUpgrade: 'sanguine champion battle plate in deep vermilion and dark crimson with blackened iron trims, jagged ruby-crested pauldrons, layered chitin scale cuirass, glowing vital essence channels across the chest, and an ornate blood-draped mantle',
     handAction: 'clenched right hand drawing forth orbiting crimson essence ribbons while left hand rests firmly on the waist',
-    backgroundVfx: 'dynamic elemental tempest background with swirling sanguine blood ribbons, dark ruby droplet halos, and vital hemorrhage aura',
-    armorUpgrade: 'barbed sanguis dragon armor, jagged ruby-crested pauldrons, layered crimson chitin scale plate, glowing vital essence channels across the chest, and an ornate blood-draped mantle',
+    backgroundVfx: 'swirling sanguine blood ribbons, dark ruby droplet halos, and vital hemorrhage aura',
   },
 
-  // Tier B (Specialized) - Focused physical elements
+  // --- TIER B (Specialized) ---
   water: {
     tier: 'B',
     tierCategory: 'Specialized',
+    bgTierPrefix: 'epic background with',
+    armorUpgrade: 'heavy forged aquamarine sea-carapace plate armor, ribbed tide-crest shoulder guards, polished ocean-tempered steel trims, and wave-patterned combat fabric',
     handAction: 'extended right hand directing a coiling aquamarine water serpent while left hand rests poised on the hip armor',
-    backgroundVfx: 'focused physical element background with coiling water serpents, swirling tidal vortex torrents, and bioluminescent ocean spray',
-    armorUpgrade: 'heavy forged aquamarine sea-drake carapace plate, ribbed tide-crest shoulder guards, polished ocean-tempered steel trims, and flowing wave-patterned combat fabric',
+    backgroundVfx: 'coiling water serpents, swirling tidal vortex torrents, and bioluminescent ocean spray',
   },
   wind: {
     tier: 'B',
     tierCategory: 'Specialized',
+    bgTierPrefix: 'epic background with',
+    armorUpgrade: 'streamlined gale-tempered steel plate armor, swept aerodynamic blade pauldrons, reinforced jade-tinted scale segments, and windward combat sashes',
     handAction: 'swept right hand releasing curved translucent aerokinetic blades while left hand rests grounded against the waist',
-    backgroundVfx: 'focused physical element background with whistling translucent jade wind blades, razor aerokinetic cutting gales, and tempest vortexes',
-    armorUpgrade: 'streamlined gale-tempered steel cuirass, swept aerodynamic blade pauldrons, reinforced jade-tinted scale segments, and flowing windward combat sashes',
+    backgroundVfx: 'whistling translucent jade wind blades, razor aerokinetic cutting gales, and tempest vortexes',
   },
   earth: {
     tier: 'B',
     tierCategory: 'Specialized',
+    bgTierPrefix: 'epic background with',
+    armorUpgrade: 'heavy forged dark granite slab-plate cuirass, chiseled tectonic pauldron plates, reinforced earthen runic rivets, and tempered iron vambraces',
     handAction: 'upturned right palm levitating jagged granite boulders and geode crystals while left hand rests anchored on the hip plate',
-    backgroundVfx: 'focused physical element background with levitating granite boulders, granite stone armor plating, and earthen geode crystals',
-    armorUpgrade: 'heavy forged dark granite slab-plate cuirass, chiseled tectonic pauldron plates, reinforced earthen runic rivets, and tempered dragon-iron vambraces',
+    backgroundVfx: 'levitating granite boulders, granite stone armor plating, and earthen geode crystals',
   },
   poison: {
     tier: 'B',
     tierCategory: 'Specialized',
+    bgTierPrefix: 'epic background with',
+    armorUpgrade: 'hardened venom-treated scale plate armor, ribbed viper-fang shoulder guards, corrosion-resistant dark iron trims, and reinforced emerald miasma bracers',
     handAction: 'raised right hand distilling caustic venom droplets from claw tips while left hand rests steady against the hip plate',
-    backgroundVfx: 'focused physical element background with noxious emerald miasma plumes, corrosive venom drips, and sickly toxic fume bubbles',
-    armorUpgrade: 'hardened venom-dipped dragon-scale plate, ribbed viper-fang shoulder guards, corrosion-resistant dark iron trims, and reinforced emerald miasma bracers',
+    backgroundVfx: 'noxious emerald miasma plumes, corrosive venom drips, and sickly toxic fume bubbles',
   },
   sound: {
     tier: 'B',
     tierCategory: 'Specialized',
-    handAction: 'open right palm projecting oscillating sonic shockwave rings while left hand rests planted against the side armor',
-    backgroundVfx: 'focused physical element background with concentric sonic shockwave rings, oscillating vibrational ripples, and pulsing frequency waves',
+    bgTierPrefix: 'epic background with',
     armorUpgrade: 'resonant layered bell-bronze and steel plate armor, acoustic tuning-fork crests on the pauldrons, ribbed vibration-absorbing chest channels, and reinforced vambraces',
+    handAction: 'open right palm projecting oscillating sonic shockwave rings while left hand rests planted against the side armor',
+    backgroundVfx: 'concentric sonic shockwave rings, oscillating vibrational ripples, and pulsing frequency waves',
   },
   metal: {
     tier: 'B',
     tierCategory: 'Specialized',
+    bgTierPrefix: 'epic background with',
+    armorUpgrade: 'heavy polished titanium plate armor, overlapping honed steel razor pauldrons, liquid mercury filigree trims, and a solid iron-banded gorget',
     handAction: 'raised right hand levitating honed titanium spikes and liquid mercury filigree while left hand rests firmly on the waist armor',
-    backgroundVfx: 'focused physical element background with floating razor steel spikes, polished titanium blades, and swirling liquid mercury filigree',
-    armorUpgrade: 'heavy polished titanium dragon-plate, overlapping honed steel razor pauldrons, liquid mercury filigree trims, and a solid iron-banded gorget',
+    backgroundVfx: 'floating razor steel spikes, polished titanium blades, and swirling liquid mercury filigree',
   },
 
-  // Tier C (Composite) - Subtle atmospheric effects
+  // --- TIER C (Composite) ---
   sand: {
     tier: 'C',
     tierCategory: 'Composite',
+    bgTierPrefix: 'rare background with',
+    armorUpgrade: 'subtle desert-sand weathering, faint golden sand particulate coating the iron plate, raw bone fasteners, and a desert-worn hood wrap',
     handAction: 'raised right hand dispersing abrasive golden particulate dunes while left hand rests planted against the hip plate',
-    backgroundVfx: 'subtle atmospheric background with swirling desert sand plumes, abrasive golden particulate dunes, and ancient tomb dust',
-    armorUpgrade: 'light utilitarian sand-drake leather cuirass, reinforced bone fasteners, darkened brass trim, and a desert-worn sandstorm hooded mantle',
+    backgroundVfx: 'swirling desert sand plumes, abrasive golden particulate dunes, and ancient tomb dust',
   },
   mist: {
     tier: 'C',
     tierCategory: 'Composite',
+    bgTierPrefix: 'rare background with',
+    armorUpgrade: 'subtle damp spectral vapor condensation along the dark iron armor, etched bone clasps, and a thin translucent moisture-weave mantle',
     handAction: 'parted right hand parting spectral damp vapor veils while left hand rests gently against the side plate',
-    backgroundVfx: 'subtle atmospheric background with rolling damp spectral mist blankets, translucent vapor veils, and ethereal moisture haze',
-    armorUpgrade: 'lightweight slate-gray drake-hide armor, bone clasps, blackened iron accents, and damp spectral vapor-weave wrapping around the shoulders',
+    backgroundVfx: 'rolling damp spectral mist blankets, translucent vapor veils, and ethereal moisture haze',
   },
   smoke: {
     tier: 'C',
     tierCategory: 'Composite',
+    bgTierPrefix: 'rare background with',
+    armorUpgrade: 'subtle scorched soot and volcanic ash residue dusting the dark iron plate, darkened raw bone fasteners, and a weathered ash-stained cowl',
     handAction: 'cupped right hand exhaling dense volcanic ash plumes while left hand rests braced against the hip armor',
-    backgroundVfx: 'subtle atmospheric background with dense volcanic ash plumes, smoldering gray embers, and pitch-black billow clouds',
-    armorUpgrade: 'lightweight blackened drake-hide scale-leather cuirass, darkened raw bone fasteners, charred iron trim accents, and a weathered ash-stained hooded mantle',
+    backgroundVfx: 'dense volcanic ash plumes, smoldering gray embers, and pitch-black billow clouds',
   },
   crystal: {
     tier: 'C',
     tierCategory: 'Composite',
+    bgTierPrefix: 'rare background with',
+    armorUpgrade: 'subtle raw amethyst mineral shards jutting from the iron shoulder joints, jagged quartz studs, and simple dark iron fasteners',
     handAction: 'raised right hand forming sharp amethyst quartz facets while left hand rests anchored against the waist plate',
-    backgroundVfx: 'subtle atmospheric background with glittering quartz crystal spires, prismatic amethyst facets, and sparkling gemstone shards',
-    armorUpgrade: 'utilitarian dark leather armor reinforced with raw unpolished quartz shard plates, jagged mineral-studded bracers, and simple dark iron fasteners',
+    backgroundVfx: 'glittering quartz crystal spires, prismatic amethyst facets, and sparkling gemstone shards',
   },
   acid: {
     tier: 'C',
     tierCategory: 'Composite',
+    bgTierPrefix: 'rare background with',
+    armorUpgrade: 'subtle caustic etching and bubbling green slime drips across the dark iron plate edges, reinforced ceramic fasteners, and a weathered scout collar',
     handAction: 'pointed right hand spraying dissolving fluorescent green slime vapors while left hand rests firmly on the hip plate',
-    backgroundVfx: 'subtle atmospheric background with rising corrosive fluorescent green acid vapors, bubbling puddle mist, and dissolving chemical fumes',
-    armorUpgrade: 'corrosion-treated scorched drake-leather brigandine, reinforced ceramic-coated iron fasteners, and an acid-resistant weathered scout wrap',
+    backgroundVfx: 'rising corrosive fluorescent green acid vapors, bubbling puddle mist, and dissolving chemical fumes',
   },
 };
 
@@ -306,11 +342,13 @@ export function buildRacePromptMarkdown(race: string): { content: string; count:
       const elemLower = element.toLowerCase();
       const config = ELEMENT_TIERED_CONFIGS[elemLower];
       const handAction = config.handAction;
-      const bgVfx = config.backgroundVfx;
+      const crownPart = config.tier === 'S'
+        ? `${genderLower === 'male' ? config.maleCrown : config.femaleCrown}, `
+        : '';
 
       const key = `${raceLower}_${genderLower}_${elemLower}`;
       const targetFile = `packages/asset-pipeline/assets/characters/${raceLower}/${key}.png`;
-      const prompt = `Masterpiece character concept art portrait, ${genderLower} ${raceLower} warrior channeling ${elemLower} magic, ${anatomyAnchor}, upgraded with ${config.armorUpgrade}, ${handAction}, ${bgVfx}, ${POSITIVE_ARM_ANATOMY_ENFORCER}, centered half-body waist-up portrait, facing camera, no full-body shots, dark fantasy manhwa illustration, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black background, 8k resolution, trending on ArtStation`;
+      const prompt = `Masterpiece character concept art portrait, ${genderLower} ${raceLower} warrior channeling ${elemLower} magic, ${anatomyAnchor}, ${crownPart}upgraded with ${config.armorUpgrade}, ${handAction}, ${config.bgTierPrefix} ${config.backgroundVfx}, ${POSITIVE_ARM_ANATOMY_ENFORCER}, centered half-body waist-up portrait, facing camera, no full-body shots, dark fantasy manhwa illustration, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black background, 8k resolution, trending on ArtStation`;
 
       lines.push(`### ${counter}. ${key}`);
       lines.push(`- **Target File**: \`${targetFile}\``);
@@ -391,13 +429,14 @@ export function buildRaceElementsMarkdown(race: string): { content: string; coun
     for (const element of ELEMENTS) {
       const elemLower = element.toLowerCase();
       const config = ELEMENT_TIERED_CONFIGS[elemLower];
-      const handAction = config.handAction;
-      const bgVfx = config.backgroundVfx;
+      const crownPart = config.tier === 'S'
+        ? `${genderLower === 'male' ? config.maleCrown : config.femaleCrown}, `
+        : '';
 
       const key = `${raceLower}_${genderLower}_${elemLower}`;
       const destination = `packages/asset-pipeline/assets/characters/${raceLower}/${key}.png`;
-      const modificationTask = `Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the armor runes with ${elemLower} energy, upgraded with ${config.armorUpgrade}. Pose with ${handAction}, channeling ${elemLower} magic (${bgVfx}).`;
-      const prompt = `Masterpiece character concept art portrait, ${genderLower} ${raceLower} warrior channeling ${elemLower} magic, based on reference portrait packages/asset-pipeline/assets/normal/${raceLower}/${raceLower}_${genderLower}_base.png, keep exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of reference image, ignite dark slate iron armor runes with ${elemLower} energy, upgraded with ${config.armorUpgrade}, ${handAction}, ${bgVfx}, ${POSITIVE_ARM_ANATOMY_ENFORCER}, centered half-body waist-up portrait, facing camera, high-contrast dark fantasy manhwa style, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black solid dark background, borderless, frameless, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
+      const modificationTask = `Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the dark slate iron armor runes with ${elemLower} energy, ${crownPart}upgraded with ${config.armorUpgrade}. Pose with ${config.handAction}, channeling ${elemLower} magic (${config.bgTierPrefix} ${config.backgroundVfx}).`;
+      const prompt = `Masterpiece character concept art portrait, ${genderLower} ${raceLower} warrior channeling ${elemLower} magic, based on reference portrait packages/asset-pipeline/assets/normal/${raceLower}/${raceLower}_${genderLower}_base.png, keep exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of reference image, ignite dark slate iron armor runes with ${elemLower} energy, ${crownPart}upgraded with ${config.armorUpgrade}, ${config.handAction}, ${config.bgTierPrefix} ${config.backgroundVfx}, ${POSITIVE_ARM_ANATOMY_ENFORCER}, centered half-body waist-up portrait, facing camera, high-contrast dark fantasy manhwa style, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black solid dark background, borderless, frameless, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
 
       lines.push(`### ${counter}. ${key}`);
       lines.push(`- **Reference Image**: \`${refImage}\``);

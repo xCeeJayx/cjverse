@@ -20,13 +20,18 @@ export interface CharacterPromptEntry {
  */
 export function buildPromptEntry(race: string, gender: string, element: string): CharacterPromptEntry {
   const elemLower = element.toLowerCase();
+  const genderLower = gender.toLowerCase();
   const elementDescription =
     ELEMENT_VISUAL_THEMES[elemLower] || `${element} magic energy aura`;
   const config = ELEMENT_TIERED_CONFIGS[elemLower];
-  const armorUpgrade = config?.armorUpgrade ? `, upgraded with ${config.armorUpgrade}` : '';
+  const crownPart = config?.tier === 'S'
+    ? `${genderLower === 'male' ? config.maleCrown : config.femaleCrown}, `
+    : '';
+  const armorUpgrade = config?.armorUpgrade ? `, ${crownPart}upgraded with ${config.armorUpgrade}` : '';
+  const bgPart = config?.bgTierPrefix && config?.backgroundVfx ? `, ${config.bgTierPrefix} ${config.backgroundVfx}` : '';
 
   const filename = `${race}_${gender}_${element}.png`;
-  const prompt = `Masterpiece character concept art portrait, ${gender} ${race} warrior channeling ${element} magic, ${elementDescription}${armorUpgrade}, dark fantasy manhwa style, sharp detailed ink linework, dynamic lighting, glowing ${element} energy particles, intense gaze, cinematic anime illustration, centered bust portrait, borderless, frameless, seamless solid dark background, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
+  const prompt = `Masterpiece character concept art portrait, ${gender} ${race} warrior channeling ${element} magic, ${elementDescription}${armorUpgrade}${bgPart}, dark fantasy manhwa style, sharp detailed ink linework, dynamic lighting, glowing ${element} energy particles, intense gaze, cinematic anime illustration, centered bust portrait, borderless, frameless, seamless solid dark background, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
 
   return {
     filename,

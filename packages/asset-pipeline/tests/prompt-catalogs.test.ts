@@ -71,19 +71,21 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
       expect(config.armorUpgrade).toBeDefined();
       expect(config.armorUpgrade.length).toBeGreaterThan(15);
 
-      // Verify tiered background complexity
+      // Verify tiered background complexity and crowns
       if (config.tier === 'S') {
         expect(config.tierCategory).toBe('Legendary');
-        expect(config.backgroundVfx).toContain('complex dimensional background');
+        expect(config.bgTierPrefix).toBe('mythical background with');
+        expect(config.maleCrown).toBeDefined();
+        expect(config.femaleCrown).toBeDefined();
       } else if (config.tier === 'A') {
         expect(config.tierCategory).toBe('Primal');
-        expect(config.backgroundVfx).toContain('dynamic elemental tempest background');
+        expect(config.bgTierPrefix).toBe('legendary background with');
       } else if (config.tier === 'B') {
         expect(config.tierCategory).toBe('Specialized');
-        expect(config.backgroundVfx).toContain('focused physical element background');
+        expect(config.bgTierPrefix).toBe('epic background with');
       } else if (config.tier === 'C') {
         expect(config.tierCategory).toBe('Composite');
-        expect(config.backgroundVfx).toContain('subtle atmospheric background');
+        expect(config.bgTierPrefix).toBe('rare background with');
       }
     }
   });
@@ -111,6 +113,9 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
         for (const element of ELEMENTS) {
           const expectedKey = `${race}_${gender}_${element}`;
           const config = ELEMENT_TIERED_CONFIGS[element];
+          const crownPart = config.tier === 'S'
+            ? `${gender.toLowerCase() === 'male' ? config.maleCrown : config.femaleCrown}, `
+            : '';
 
           expect(content).toContain(expectedKey);
           expect(content).toContain(
@@ -121,8 +126,12 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
           );
           expect(content).toContain(config.armorUpgrade);
           expect(content).toContain(config.handAction);
+          expect(content).toContain(config.bgTierPrefix);
           expect(content).toContain(config.backgroundVfx);
           expect(content).toContain(POSITIVE_ARM_ANATOMY_ENFORCER);
+          if (config.tier === 'S') {
+            expect(content).toContain(crownPart);
+          }
         }
       }
     }
@@ -190,17 +199,24 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
           const expectedRef = `packages/asset-pipeline/assets/normal/${race}/${race}_${gender}_base.png`;
           const expectedDest = `packages/asset-pipeline/assets/characters/${race}/${expectedKey}.png`;
           const config = ELEMENT_TIERED_CONFIGS[element];
+          const crownPart = config.tier === 'S'
+            ? `${gender.toLowerCase() === 'male' ? config.maleCrown : config.femaleCrown}, `
+            : '';
 
           expect(content).toContain(expectedKey);
           expect(content).toContain(`- **Reference Image**: \`${expectedRef}\``);
           expect(content).toContain(`- **Destination**: \`${expectedDest}\``);
           expect(content).toContain(
-            `- **Modification Task**: Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the armor runes with ${element} energy, upgraded with ${config.armorUpgrade}. Pose with ${config.handAction}, channeling ${element} magic (${config.backgroundVfx}).`
+            `- **Modification Task**: Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the dark slate iron armor runes with ${element} energy, ${crownPart}upgraded with ${config.armorUpgrade}. Pose with ${config.handAction}, channeling ${element} magic (${config.bgTierPrefix} ${config.backgroundVfx}).`
           );
           expect(content).toContain(config.armorUpgrade);
           expect(content).toContain(config.handAction);
+          expect(content).toContain(config.bgTierPrefix);
           expect(content).toContain(config.backgroundVfx);
           expect(content).toContain(POSITIVE_ARM_ANATOMY_ENFORCER);
+          if (config.tier === 'S') {
+            expect(content).toContain(crownPart);
+          }
         }
       }
     }
