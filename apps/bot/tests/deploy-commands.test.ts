@@ -49,10 +49,28 @@ describe('Discord Slash Command Deployment Definitions', () => {
   it('defines /leaderboard command with optional category choices', () => {
     const lb = commands.find((c) => c.name === 'leaderboard');
     expect(lb).toBeDefined();
-    expect(lb?.description).toContain('leaderboard');
+    expect(lb?.description).toContain('duelists');
     const catOpt = lb?.options?.find((opt: any) => opt.name === 'category');
     expect(catOpt).toBeDefined();
     expect((catOpt as any)?.choices?.map((c: any) => c.value)).toEqual(['rating', 'crystals']);
+  });
+
+  it('defines /market command with subcommands list, browse, and buy', () => {
+    const mkt = commands.find((c) => c.name === 'market');
+    expect(mkt).toBeDefined();
+    const subnames = mkt?.options?.map((s: any) => s.name);
+    expect(subnames).toContain('list');
+    expect(subnames).toContain('browse');
+    expect(subnames).toContain('buy');
+  });
+
+  it('defines /trade command with target and card IDs', () => {
+    const trade = commands.find((c) => c.name === 'trade');
+    expect(trade).toBeDefined();
+    const optNames = trade?.options?.map((o: any) => o.name);
+    expect(optNames).toContain('target');
+    expect(optNames).toContain('your_card_id');
+    expect(optNames).toContain('their_card_id');
   });
 
   it('purges global commands when DISCORD_GUILD_ID is present', async () => {

@@ -45,4 +45,33 @@ describe('Drizzle Database Schema Definitions', () => {
     expect(cols).toHaveProperty('combatLogs');
     expect(cols).toHaveProperty('summary');
   });
+
+  it('contains required columns in marketListings table', async () => {
+    const { marketListings, generateListingId } = await import('../src');
+    const cols = getTableColumns(marketListings);
+    expect(cols).toHaveProperty('id');
+    expect(cols).toHaveProperty('sellerId');
+    expect(cols).toHaveProperty('cardId');
+    expect(cols).toHaveProperty('price');
+    expect(cols).toHaveProperty('status');
+    expect(cols).toHaveProperty('createdAt');
+
+    const testId = generateListingId();
+    expect(testId).toHaveLength(8);
+  });
+
+  it('contains required columns in trades table', async () => {
+    const { trades, generateTradeId } = await import('../src');
+    const cols = getTableColumns(trades);
+    expect(cols).toHaveProperty('id');
+    expect(cols).toHaveProperty('proposerId');
+    expect(cols).toHaveProperty('targetId');
+    expect(cols).toHaveProperty('proposerCardId');
+    expect(cols).toHaveProperty('targetCardId');
+    expect(cols).toHaveProperty('status');
+    expect(cols).toHaveProperty('createdAt');
+
+    const testId = generateTradeId();
+    expect(testId).toHaveLength(8);
+  });
 });

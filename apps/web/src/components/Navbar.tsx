@@ -128,6 +128,7 @@ export function Navbar({ initialUser }: NavbarProps) {
   const navLinks = [
     { label: 'Arena', href: '/duel', icon: '⚔️' },
     { label: 'Collection / Team', href: '/collection', icon: '🎴' },
+    { label: 'Market', href: '/market', icon: '🏪' },
     { label: 'Leaderboard', href: '/leaderboard', icon: '🏆' },
   ];
 

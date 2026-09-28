@@ -83,8 +83,8 @@ describe('Discord Bot /leaderboard Command Handler', () => {
     expect(formatMedal(1)).toBe('🥇');
     expect(formatMedal(2)).toBe('🥈');
     expect(formatMedal(3)).toBe('🥉');
-    expect(formatMedal(4)).toBe('**#4**');
-    expect(formatMedal(10)).toBe('**#10**');
+    expect(formatMedal(4)).toBe('#4');
+    expect(formatMedal(10)).toBe('#10');
   });
 
   it('handles /leaderboard interaction with deferReply and editReply embed', async () => {
@@ -112,8 +112,9 @@ describe('Discord Bot /leaderboard Command Handler', () => {
     expect(replyPayload.embeds).toBeDefined();
     expect(replyPayload.embeds.length).toBe(1);
     const embedData = replyPayload.embeds[0].data;
-    expect(embedData.title).toContain('Global Leaderboard');
+    expect(embedData.title).toBe('🏆 CJVerse Leaderboard - Top Rated Duelists');
     expect(embedData.description).toContain('BetaChampion');
     expect(embedData.description).toContain('MMR');
+    expect(embedData.color).toBe(0xf59e0b);
   });
 });

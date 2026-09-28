@@ -45,4 +45,35 @@ describe('CardStats Calculation Engine', () => {
     const goblinStats = calculateStats(rainbowGoblin);
     expect(goblinStats.atk).toBeGreaterThan(dragonStats.atk);
   });
+
+  it('safely handles race aliases like draconian and abyssal without throwing', () => {
+    const draconianCard: any = {
+      race: 'draconian',
+      variant: 'gold',
+      elementTier: 'A',
+      level: 5,
+    };
+    const abyssalCard: any = {
+      race: 'abyssal',
+      variant: 'normal',
+      elementTier: 'B',
+      level: 1,
+    };
+    const unknownCard: any = {
+      race: 'mystic_beast',
+      variant: 'rainbow',
+    };
+
+    const dStats = calculateStats(draconianCard);
+    expect(dStats).toBeDefined();
+    expect(dStats.maxHp).toBeGreaterThan(0);
+
+    const aStats = calculateStats(abyssalCard);
+    expect(aStats).toBeDefined();
+    expect(aStats.maxHp).toBeGreaterThan(0);
+
+    const uStats = calculateStats(unknownCard);
+    expect(uStats).toBeDefined();
+    expect(uStats.maxHp).toBeGreaterThan(0);
+  });
 });

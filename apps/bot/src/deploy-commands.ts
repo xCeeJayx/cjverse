@@ -67,16 +67,58 @@ export const commands = [
     ),
   new SlashCommandBuilder()
     .setName('leaderboard')
-    .setDescription('View the global player leaderboards')
+    .setDescription('View top CJVerse duelists by rating or crystal wealth')
     .addStringOption((opt) =>
       opt
         .setName('category')
-        .setDescription('Category to rank by (rating or crystals)')
+        .setDescription('Rank by Elo rating or crystals')
         .setRequired(false)
         .addChoices(
           { name: 'Rating (MMR)', value: 'rating' },
           { name: 'Crystals', value: 'crystals' }
         )
+    ),
+  new SlashCommandBuilder()
+    .setName('market')
+    .setDescription('Browse, list, or purchase cards on the global marketplace')
+    .addSubcommand((sub) =>
+      sub
+        .setName('list')
+        .setDescription('List a card for sale on the marketplace')
+        .addStringOption((opt) =>
+          opt.setName('card_id').setDescription('The 6-character ID of the card to sell').setRequired(true)
+        )
+        .addIntegerOption((opt) =>
+          opt.setName('price').setDescription('Price in crystals').setRequired(true).setMinValue(1)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('browse')
+        .setDescription('Browse active card listings on the marketplace')
+        .addIntegerOption((opt) =>
+          opt.setName('page').setDescription('Page number to browse').setRequired(false).setMinValue(1)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('buy')
+        .setDescription('Purchase a card listing with crystals')
+        .addStringOption((opt) =>
+          opt.setName('listing_id').setDescription('The 8-character ID of the market listing').setRequired(true)
+        )
+    ),
+  new SlashCommandBuilder()
+    .setName('trade')
+    .setDescription('Propose a direct card swap with another player')
+    .addUserOption((opt) =>
+      opt.setName('target').setDescription('The player you want to trade with').setRequired(true)
+    )
+    .addStringOption((opt) =>
+      opt.setName('your_card_id').setDescription('The ID of your card offered in trade').setRequired(true)
+    )
+    .addStringOption((opt) =>
+      opt.setName('their_card_id').setDescription('The ID of the card you want from them').setRequired(true)
     ),
 ].map((cmd) => cmd.toJSON());
 

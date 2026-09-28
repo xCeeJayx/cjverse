@@ -27,6 +27,16 @@ import { handleEquipCommand } from './commands/equip';
 import { handleUpgradeCommand } from './commands/upgrade';
 import { handleEvolveCommand } from './commands/evolve';
 import { handleLeaderboardCommand, formatMedal } from './commands/leaderboard';
+import {
+  handleMarketList,
+  handleMarketBrowse,
+  handleMarketBuy,
+} from './commands/market';
+import {
+  handleTradePropose,
+  handleTradeAccept,
+  handleTradeDecline,
+} from './commands/trade';
 
 // Safe environment variable loading from root and bot .env files
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -42,6 +52,8 @@ export * from './commands/equip';
 export * from './commands/upgrade';
 export * from './commands/evolve';
 export * from './commands/leaderboard';
+export * from './commands/market';
+export * from './commands/trade';
 export * from './services/card-resolver';
 export * from './deploy-commands';
 
@@ -408,56 +420,134 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     if (typeof interaction.deferReply === 'function') {
       await interaction.deferReply();
     }
-    const category = interaction.options.getString('category') ?? 'rating';
+    const category =
+      (interaction.options.getString('category') as 'rating' | 'crystals') || 'rating';
 
     try {
-      const result = await handleLeaderboardCommand(category);
-
-      const isRating = result.category === 'rating';
-      const title = isRating
-        ? '🏆 CJVerse Global Leaderboard (Rating / MMR)'
-        : '💎 CJVerse Wealth Leaderboard (Total Crystals)';
-
-      if (result.entries.length === 0) {
-        const emptyMsg = 'No duelist records found on the leaderboard yet!';
-        if (interaction.deferred || typeof interaction.editReply === 'function') {
-          await interaction.editReply(emptyMsg);
-        } else if (typeof interaction.reply === 'function') {
-          await interaction.reply(emptyMsg);
-        }
-        return;
-      }
-
-      const description = result.entries
-        .map((e) => {
-          const medal = formatMedal(e.rank);
-          const wRate =
-            e.wins + e.losses > 0
-              ? Math.round((e.wins / (e.wins + e.losses)) * 100)
-              : 0;
-          return (
-            `${medal} **${e.username}**\n` +
-            `> ⚡ Rating: **${e.rating} MMR** | Record: **${e.wins}W - ${e.losses}L** (${wRate}%) | 💎 **${e.crystals}**`
-          );
-        })
-        .join('\n\n');
-
-      const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setDescription(description)
-        .setColor(isRating ? 0xf59e0b : 0x06b6d4)
-        .setFooter({
-          text: `Top ${result.entries.length} Duelists • Ranked by ${result.category.toUpperCase()}`,
-        });
-
+      const embed = await handleLeaderboardCommand(category);
       if (interaction.deferred || typeof interaction.editReply === 'function') {
         await interaction.editReply({ embeds: [embed] });
       } else if (typeof interaction.reply === 'function') {
         await interaction.reply({ embeds: [embed] });
       }
     } catch (err) {
-      console.error('[Leaderboard Command Error]:', err);
+      console.error('[Leaderboard Error]:', err);
       const fallback = '❌ Failed to fetch leaderboard rankings. Please try again.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'market') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    const subcommand = interaction.options.getSubcommand();
+
+    try {
+      if (subcommand === 'list') {
+        const cardId = interaction.options.getString('card_id', true);
+        const price = interaction.options.getInteger('price', true);
+
+        const result = await handleMarketList(interaction.user.id, cardId, price);
+        if (!result.success) {
+          await interaction.editReply(result.message || '❌ Failed to list card.');
+          return;
+        }
+        await interaction.editReply({ embeds: [result.embed!] });
+        return;
+      }
+
+      if (subcommand === 'browse') {
+        const page = interaction.options.getInteger('page') ?? 1;
+        const result = await handleMarketBrowse(page);
+        await interaction.editReply({ embeds: [result.embed] });
+        return;
+      }
+
+      if (subcommand === 'buy') {
+        const listingId = interaction.options.getString('listing_id', true);
+        const result = await handleMarketBuy(interaction.user.id, listingId);
+        if (!result.success) {
+          await interaction.editReply(result.message || '❌ Purchase failed.');
+          return;
+        }
+        await interaction.editReply({ embeds: [result.embed!] });
+        return;
+      }
+    } catch (err) {
+      console.error('[Market Error]:', err);
+      const fallback = '❌ An error occurred during the marketplace operation.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'trade') {
+    const target = interaction.options.getUser('target', true);
+    const yourCardId = interaction.options.getString('your_card_id', true);
+    const theirCardId = interaction.options.getString('their_card_id', true);
+
+    if (interaction.user.id === target.id) {
+      const errReply = '❌ **Trade Proposal Failed:** You cannot propose a trade with yourself.';
+      if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: errReply, ephemeral: true });
+      }
+      return;
+    }
+
+    if (target.bot) {
+      const errReply = '❌ **Trade Proposal Failed:** Cannot trade cards with an AI bot.';
+      if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: errReply, ephemeral: true });
+      }
+      return;
+    }
+
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    try {
+      const result = await handleTradePropose({
+        proposerId: interaction.user.id,
+        targetId: target.id,
+        rawProposerCardId: yourCardId,
+        rawTargetCardId: theirCardId,
+      });
+
+      if (!result.success) {
+        if (interaction.deferred || typeof interaction.editReply === 'function') {
+          await interaction.editReply(result.message || '❌ Trade proposal failed.');
+        } else if (typeof interaction.reply === 'function') {
+          await interaction.reply({ content: result.message || '❌ Trade proposal failed.', ephemeral: true });
+        }
+        return;
+      }
+
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply({
+          embeds: [result.embed!],
+          components: result.components,
+        });
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({
+          embeds: [result.embed!],
+          components: result.components,
+        });
+      }
+    } catch (err) {
+      console.error('[Trade Error]:', err);
+      const fallback = '❌ An error occurred while creating the trade proposal.';
       if (interaction.deferred || typeof interaction.editReply === 'function') {
         await interaction.editReply(fallback).catch(() => {});
       } else if (typeof interaction.reply === 'function') {
@@ -469,6 +559,47 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
 }
 
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isButton()) {
+    try {
+      if (interaction.customId.startsWith('trade_accept_')) {
+        const tradeId = interaction.customId.replace('trade_accept_', '');
+        const result = await handleTradeAccept(tradeId, interaction.user.id);
+        if (!result.success) {
+          await interaction.reply({ content: result.message, ephemeral: true });
+          return;
+        }
+        await interaction.update({
+          embeds: [result.embed!],
+          components: [],
+        });
+        return;
+      }
+
+      if (interaction.customId.startsWith('trade_decline_')) {
+        const tradeId = interaction.customId.replace('trade_decline_', '');
+        const result = await handleTradeDecline(tradeId, interaction.user.id);
+        if (!result.success) {
+          await interaction.reply({ content: result.message, ephemeral: true });
+          return;
+        }
+        await interaction.update({
+          embeds: [result.embed!],
+          components: [],
+        });
+        return;
+      }
+    } catch (btnErr) {
+      console.error('[Button Error]:', btnErr);
+      await interaction
+        .reply({
+          content: 'An error occurred processing this button action.',
+          ephemeral: true,
+        })
+        .catch(() => {});
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
   try {
     await handleInteraction(interaction);

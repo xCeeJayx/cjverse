@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { db, users, desc } from '@cjverse/db';
+import { EmbedBuilder } from 'discord.js';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -19,26 +20,27 @@ export interface LeaderboardEntry {
   crystals: number;
 }
 
-export interface LeaderboardResult {
-  category: LeaderboardCategory;
-  entries: LeaderboardEntry[];
-  totalPlayers: number;
-}
-
 export function formatMedal(rank: number): string {
   if (rank === 1) return '🥇';
   if (rank === 2) return '🥈';
   if (rank === 3) return '🥉';
-  return `**#${rank}**`;
+  return `#${rank}`;
 }
 
-export async function handleLeaderboardCommand(
-  categoryParam?: string
-): Promise<LeaderboardResult> {
-  const category: LeaderboardCategory =
-    categoryParam?.toLowerCase() === 'crystals' ? 'crystals' : 'rating';
+export type LeaderboardEmbed = EmbedBuilder & {
+  category: LeaderboardCategory;
+  entries: LeaderboardEntry[];
+  totalPlayers: number;
+};
 
-  const orderByColumn = category === 'crystals' ? desc(users.crystals) : desc(users.rating);
+export async function handleLeaderboardCommand(
+  category: 'rating' | 'crystals' = 'rating'
+): Promise<LeaderboardEmbed> {
+  const selectedCategory: LeaderboardCategory =
+    category?.toLowerCase() === 'crystals' ? 'crystals' : 'rating';
+
+  const orderByColumn =
+    selectedCategory === 'crystals' ? desc(users.crystals) : desc(users.rating);
 
   const topUsers = await db
     .select({
@@ -60,12 +62,33 @@ export async function handleLeaderboardCommand(
     rating: u.rating ?? 1000,
     wins: u.wins ?? 0,
     losses: u.losses ?? 0,
-    crystals: u.crystals ?? 100,
+    crystals: u.crystals ?? 0,
   }));
 
-  return {
-    category,
+  const title = `🏆 CJVerse Leaderboard - ${
+    selectedCategory === 'crystals' ? 'Richest Duelists' : 'Top Rated Duelists'
+  }`;
+
+  const description =
+    entries.length === 0
+      ? '*No duelists found on the leaderboard yet.*'
+      : entries
+          .map((u) => {
+            const rankEmoji = formatMedal(u.rank);
+            return `**(${rankEmoji}) ${u.username}** — (${u.rating || 1000} MMR | ${u.wins || 0}W - ${u.losses || 0}L | 💎 ${u.crystals || 0})`;
+          })
+          .join('\n');
+
+  const embed = new EmbedBuilder()
+    .setTitle(title)
+    .setDescription(description)
+    .setColor(0xf59e0b);
+
+  Object.assign(embed, {
+    category: selectedCategory,
     entries,
     totalPlayers: entries.length,
-  };
+  });
+
+  return embed as LeaderboardEmbed;
 }
