@@ -2,13 +2,16 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RACES, GENDERS, ELEMENTS, ELEMENT_VISUAL_THEMES } from '../scripts/generate-characters';
+import { RACES, GENDERS, ELEMENTS } from '../scripts/generate-characters';
 import {
   buildRacePromptMarkdown,
   buildRaceBaseMarkdown,
   buildRaceElementsMarkdown,
   generateAllPromptCatalogs,
+  GLOBAL_NEGATIVE_PROMPT,
   STRICT_NEGATIVE_PROMPT,
+  POSITIVE_ARM_ANATOMY_ENFORCER,
+  ELEMENT_TIERED_CONFIGS,
 } from '../scripts/generate-prompt-catalogs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,6 +40,52 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
     }
   });
 
+  it('enforces arm anti-duplication negative prompt and positive enforcer', () => {
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('extra arms');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('three arms');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('extra hands');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('three hands');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('duplicate arms');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('duplicate hands');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('floating limbs');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('mutated hands');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('bad anatomy');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('deformed fingers');
+    expect(GLOBAL_NEGATIVE_PROMPT).toContain('extra limbs');
+
+    expect(POSITIVE_ARM_ANATOMY_ENFORCER).toBe(
+      'anatomically correct, exactly two arms, two hands only, one hand active, other hand resting at side or hip'
+    );
+  });
+
+  it('defines 23 element configs across all 4 tiers with unique hand poses and tiered backgrounds', () => {
+    expect(Object.keys(ELEMENT_TIERED_CONFIGS).length).toBe(23);
+
+    for (const element of ELEMENTS) {
+      const config = ELEMENT_TIERED_CONFIGS[element];
+      expect(config).toBeDefined();
+      expect(['S', 'A', 'B', 'C']).toContain(config.tier);
+
+      // Verify each element specifies exact actions for both hands
+      expect(config.handAction).toMatch(/right (hand|claw|palm).*left hand/);
+
+      // Verify tiered background complexity
+      if (config.tier === 'S') {
+        expect(config.tierCategory).toBe('Legendary');
+        expect(config.backgroundVfx).toContain('complex dimensional background');
+      } else if (config.tier === 'A') {
+        expect(config.tierCategory).toBe('Primal');
+        expect(config.backgroundVfx).toContain('dynamic elemental tempest background');
+      } else if (config.tier === 'B') {
+        expect(config.tierCategory).toBe('Specialized');
+        expect(config.backgroundVfx).toContain('focused physical element background');
+      } else if (config.tier === 'C') {
+        expect(config.tierCategory).toBe('Composite');
+        expect(config.backgroundVfx).toContain('subtle atmospheric background');
+      }
+    }
+  });
+
   it('contains a valid prompts.md file for each of the 7 races with exactly 46 prompt entries', () => {
     for (const race of RACES) {
       const catalogPath = path.resolve(promptsDir, race, 'prompts.md');
@@ -59,7 +108,8 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
       for (const gender of GENDERS) {
         for (const element of ELEMENTS) {
           const expectedKey = `${race}_${gender}_${element}`;
-          expect(content).toContain(`### `);
+          const config = ELEMENT_TIERED_CONFIGS[element];
+
           expect(content).toContain(expectedKey);
           expect(content).toContain(
             `- **Target File**: \`packages/asset-pipeline/assets/characters/${race}/${expectedKey}.png\``
@@ -67,6 +117,9 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
           expect(content).toContain(
             `- **Prompt**: \`Masterpiece character concept art portrait, ${gender} ${race} warrior channeling ${element} magic`
           );
+          expect(content).toContain(config.handAction);
+          expect(content).toContain(config.backgroundVfx);
+          expect(content).toContain(POSITIVE_ARM_ANATOMY_ENFORCER);
         }
       }
     }
@@ -120,6 +173,7 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
       expect(content).toContain('- **Aspect Ratio**: 3:4 (Portrait)');
       expect(content).toContain(`- **Base References Directory**: \`packages/asset-pipeline/assets/normal/${race}/\``);
       expect(content).toContain(`- **Output Directory**: \`packages/asset-pipeline/assets/characters/${race}/\``);
+      expect(content).toContain(`- **Negative Prompt**: \`${STRICT_NEGATIVE_PROMPT}\``);
 
       // Count entries matching "### <N>. <race>_<gender>_<element>"
       const entryMatches = content.match(/### \d+\. /g);
@@ -132,13 +186,17 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
           const expectedKey = `${race}_${gender}_${element}`;
           const expectedRef = `packages/asset-pipeline/assets/normal/${race}/${race}_${gender}_base.png`;
           const expectedDest = `packages/asset-pipeline/assets/characters/${race}/${expectedKey}.png`;
+          const config = ELEMENT_TIERED_CONFIGS[element];
 
           expect(content).toContain(expectedKey);
           expect(content).toContain(`- **Reference Image**: \`${expectedRef}\``);
           expect(content).toContain(`- **Destination**: \`${expectedDest}\``);
           expect(content).toContain(
-            `- **Modification Task**: Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the armor runes and the raised hand with ${element} magic (${ELEMENT_VISUAL_THEMES[element]}).`
+            `- **Modification Task**: Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the armor runes and pose with ${config.handAction}, channeling ${element} magic (${config.backgroundVfx}).`
           );
+          expect(content).toContain(config.handAction);
+          expect(content).toContain(config.backgroundVfx);
+          expect(content).toContain(POSITIVE_ARM_ANATOMY_ENFORCER);
         }
       }
     }
@@ -161,6 +219,7 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
     expect(content).toContain('dragon_female_fire');
     expect(content).toContain('packages/asset-pipeline/assets/normal/dragon/dragon_male_base.png');
     expect(content).toContain('packages/asset-pipeline/assets/characters/dragon/dragon_female_fire.png');
+    expect(content).toContain(POSITIVE_ARM_ANATOMY_ENFORCER);
   });
 
   it('buildRacePromptMarkdown produces deterministic catalog with 46 entries', () => {
@@ -169,6 +228,8 @@ describe('Race-Specific Character Asset Folders & Prompt Catalogs', () => {
     expect(content).toContain('# Character Art Prompts: Elf');
     expect(content).toContain('elf_female_nature');
     expect(content).toContain('elf_male_arcane');
+    expect(content).toContain(POSITIVE_ARM_ANATOMY_ENFORCER);
   });
 });
+
 

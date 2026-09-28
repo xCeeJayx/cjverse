@@ -12,9 +12,174 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const GLOBAL_NEGATIVE_PROMPT =
-  'smooth human skin, human face, human ears, cosplay, costume, full body, wide angle, card, border, frame, ornate frame, text, watermark, signature, UI, cropped';
+  'extra arms, three arms, extra hands, three hands, duplicate arms, duplicate hands, floating limbs, mutated hands, bad anatomy, deformed fingers, extra limbs, smooth human skin, human face, human ears, cosplay, card, border, frame, ornate frame, outer box, UI, HUD, text, watermark, signature';
 
 export const STRICT_NEGATIVE_PROMPT = GLOBAL_NEGATIVE_PROMPT;
+
+export const POSITIVE_ARM_ANATOMY_ENFORCER =
+  'anatomically correct, exactly two arms, two hands only, one hand active, other hand resting at side or hip';
+
+/**
+ * Tiered element configuration with unique hand poses and background hierarchy:
+ * - Tier S (Legendary): Complex dimensional backgrounds
+ * - Tier A (Primal): Dynamic elemental tempests
+ * - Tier B (Specialized): Focused physical elements
+ * - Tier C (Composite): Subtle atmospheric effects
+ */
+export interface ElementTieredConfig {
+  tier: 'S' | 'A' | 'B' | 'C';
+  tierCategory: 'Legendary' | 'Primal' | 'Specialized' | 'Composite';
+  handAction: string;
+  backgroundVfx: string;
+}
+
+export const ELEMENT_TIERED_CONFIGS: Record<string, ElementTieredConfig> = {
+  // Tier S (Legendary) - Complex dimensional backgrounds
+  void: {
+    tier: 'S',
+    tierCategory: 'Legendary',
+    handAction: 'right hand crushing an imploding void sphere while left hand rests firmly on the hip plate',
+    backgroundVfx: 'complex dimensional background with deep purple event horizons, cosmic gravity distortion, and abyssal black holes',
+  },
+  time: {
+    tier: 'S',
+    tierCategory: 'Legendary',
+    handAction: 'raised right hand manipulating floating golden chronos dials while left hand rests poised on the belt plate',
+    backgroundVfx: 'complex dimensional background with glowing molten gold chronos gear arrays, ticking astral clock faces, and temporal distortion waves',
+  },
+  cosmic: {
+    tier: 'S',
+    tierCategory: 'Legendary',
+    handAction: 'raised right hand cradling a swirling miniature spiral galaxy while left hand rests firmly on the side hip armor',
+    backgroundVfx: 'complex dimensional background with deep violet spiral galaxies, radiant star clusters, and stellar stardust nebulae',
+  },
+  arcane: {
+    tier: 'S',
+    tierCategory: 'Legendary',
+    handAction: 'outstretched right hand projecting a radiant cyan glyph circle while left hand rests securely on the waist plate',
+    backgroundVfx: 'complex dimensional background with concentric glowing cyan runic spell circles, floating arcane glyph matrices, and ethereal spell tomes',
+  },
+  chaos: {
+    tier: 'S',
+    tierCategory: 'Legendary',
+    handAction: 'raised right hand gripping a volatile reality-fracturing rift while left hand rests steadily against the hip plate',
+    backgroundVfx: 'complex dimensional background with shattered reality rifts, jagged glitch-energy arcs, and volatile violet-crimson sparks',
+  },
+
+  // Tier A (Primal) - Dynamic elemental tempests
+  fire: {
+    tier: 'A',
+    tierCategory: 'Primal',
+    handAction: 'raised right hand gripping an incandescent magma orb while left hand rests firmly on the side hip plate',
+    backgroundVfx: 'dynamic elemental tempest background with raging crimson infernos, molten magma cracks, and swirling blazing ember halos',
+  },
+  ice: {
+    tier: 'A',
+    tierCategory: 'Primal',
+    handAction: 'thrust forward right hand condensing a glacial frost vortex while left hand rests anchored at the hip armor',
+    backgroundVfx: 'dynamic elemental tempest background with howling blizzard squalls, diamond frost fractures, and crystalline glacial shards',
+  },
+  lightning: {
+    tier: 'A',
+    tierCategory: 'Primal',
+    handAction: 'raised right claw channeling crackling azure plasma arcs while left hand rests grounded against the hip plate',
+    backgroundVfx: 'dynamic elemental tempest background with violent lightning strikes, high-voltage electric arcs, and ionized corona sparks',
+  },
+  shadow: {
+    tier: 'A',
+    tierCategory: 'Primal',
+    handAction: 'raised right hand weaving ribbons of solid dark abyss while left hand rests motionless against the waist plate',
+    backgroundVfx: 'dynamic elemental tempest background with churning abyssal smoke tendrils, suffocating darkness shrouds, and violet phantom glow',
+  },
+  light: {
+    tier: 'A',
+    tierCategory: 'Primal',
+    handAction: 'uplifted right hand unleashing a blinding solar corona while left hand rests calmly against the side armor',
+    backgroundVfx: 'dynamic elemental tempest background with radiant blinding solar rays, celestial light pillars, and holy prismatic halos',
+  },
+  nature: {
+    tier: 'A',
+    tierCategory: 'Primal',
+    handAction: 'curved right hand sprouting bioluminescent thorned vines while left hand rests planted on the hip plate',
+    backgroundVfx: 'dynamic elemental tempest background with swirling emerald pollen tempests, glowing bioluminescent vines, and blooming thorny brambles',
+  },
+  blood: {
+    tier: 'A',
+    tierCategory: 'Primal',
+    handAction: 'clenched right hand drawing forth orbiting crimson essence ribbons while left hand rests firmly on the waist',
+    backgroundVfx: 'dynamic elemental tempest background with swirling sanguine blood ribbons, dark ruby droplet halos, and vital hemorrhage aura',
+  },
+
+  // Tier B (Specialized) - Focused physical elements
+  water: {
+    tier: 'B',
+    tierCategory: 'Specialized',
+    handAction: 'extended right hand directing a coiling aquamarine water serpent while left hand rests poised on the hip armor',
+    backgroundVfx: 'focused physical element background with coiling water serpents, swirling tidal vortex torrents, and bioluminescent ocean spray',
+  },
+  wind: {
+    tier: 'B',
+    tierCategory: 'Specialized',
+    handAction: 'swept right hand releasing curved translucent aerokinetic blades while left hand rests grounded against the waist',
+    backgroundVfx: 'focused physical element background with whistling translucent jade wind blades, razor aerokinetic cutting gales, and tempest vortexes',
+  },
+  earth: {
+    tier: 'B',
+    tierCategory: 'Specialized',
+    handAction: 'upturned right palm levitating jagged granite boulders and geode crystals while left hand rests anchored on the hip plate',
+    backgroundVfx: 'focused physical element background with levitating granite boulders, granite stone armor plating, and earthen geode crystals',
+  },
+  poison: {
+    tier: 'B',
+    tierCategory: 'Specialized',
+    handAction: 'raised right hand distilling caustic venom droplets from claw tips while left hand rests steady against the hip plate',
+    backgroundVfx: 'focused physical element background with noxious emerald miasma plumes, corrosive venom drips, and sickly toxic fume bubbles',
+  },
+  sound: {
+    tier: 'B',
+    tierCategory: 'Specialized',
+    handAction: 'open right palm projecting oscillating sonic shockwave rings while left hand rests planted against the side armor',
+    backgroundVfx: 'focused physical element background with concentric sonic shockwave rings, oscillating vibrational ripples, and pulsing frequency waves',
+  },
+  metal: {
+    tier: 'B',
+    tierCategory: 'Specialized',
+    handAction: 'raised right hand levitating honed titanium spikes and liquid mercury filigree while left hand rests firmly on the waist armor',
+    backgroundVfx: 'focused physical element background with floating razor steel spikes, polished titanium blades, and swirling liquid mercury filigree',
+  },
+
+  // Tier C (Composite) - Subtle atmospheric effects
+  sand: {
+    tier: 'C',
+    tierCategory: 'Composite',
+    handAction: 'raised right hand dispersing abrasive golden particulate dunes while left hand rests planted against the hip plate',
+    backgroundVfx: 'subtle atmospheric background with swirling desert sand plumes, abrasive golden particulate dunes, and ancient tomb dust',
+  },
+  mist: {
+    tier: 'C',
+    tierCategory: 'Composite',
+    handAction: 'parted right hand parting spectral damp vapor veils while left hand rests gently against the side plate',
+    backgroundVfx: 'subtle atmospheric background with rolling damp spectral mist blankets, translucent vapor veils, and ethereal moisture haze',
+  },
+  smoke: {
+    tier: 'C',
+    tierCategory: 'Composite',
+    handAction: 'cupped right hand exhaling dense volcanic ash plumes while left hand rests braced against the hip armor',
+    backgroundVfx: 'subtle atmospheric background with dense volcanic ash plumes, smoldering gray embers, and pitch-black billow clouds',
+  },
+  crystal: {
+    tier: 'C',
+    tierCategory: 'Composite',
+    handAction: 'raised right hand forming sharp amethyst quartz facets while left hand rests anchored against the waist plate',
+    backgroundVfx: 'subtle atmospheric background with glittering quartz crystal spires, prismatic amethyst facets, and sparkling gemstone shards',
+  },
+  acid: {
+    tier: 'C',
+    tierCategory: 'Composite',
+    handAction: 'pointed right hand spraying dissolving fluorescent green slime vapors while left hand rests firmly on the hip plate',
+    backgroundVfx: 'subtle atmospheric background with rising corrosive fluorescent green acid vapors, bubbling puddle mist, and dissolving chemical fumes',
+  },
+};
 
 /**
  * Non-humanoid facial anatomy and physiological anchors per race and gender.
@@ -119,12 +284,13 @@ export function buildRacePromptMarkdown(race: string): { content: string; count:
 
     for (const element of ELEMENTS) {
       const elemLower = element.toLowerCase();
-      const elementDescription =
-        ELEMENT_VISUAL_THEMES[elemLower] || `${element} magic energy aura`;
+      const config = ELEMENT_TIERED_CONFIGS[elemLower];
+      const handAction = config.handAction;
+      const bgVfx = config.backgroundVfx;
 
       const key = `${raceLower}_${genderLower}_${elemLower}`;
       const targetFile = `packages/asset-pipeline/assets/characters/${raceLower}/${key}.png`;
-      const prompt = `Masterpiece character concept art portrait, ${genderLower} ${raceLower} warrior channeling ${elemLower} magic, ${anatomyAnchor}, ${elementDescription}, centered half-body waist-up portrait, facing camera, one raised hand channeling swirling ${elemLower} energy, no full-body shots, dark fantasy manhwa illustration, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black background, 8k resolution, trending on ArtStation`;
+      const prompt = `Masterpiece character concept art portrait, ${genderLower} ${raceLower} warrior channeling ${elemLower} magic, ${anatomyAnchor}, ${handAction}, ${bgVfx}, ${POSITIVE_ARM_ANATOMY_ENFORCER}, centered half-body waist-up portrait, facing camera, no full-body shots, dark fantasy manhwa illustration, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black background, 8k resolution, trending on ArtStation`;
 
       lines.push(`### ${counter}. ${key}`);
       lines.push(`- **Target File**: \`${targetFile}\``);
@@ -165,7 +331,7 @@ export function buildRaceBaseMarkdown(race: string): { content: string; count: n
 
     const key = `${raceLower}_${genderLower}_base`;
     const targetFile = `packages/asset-pipeline/assets/normal/${raceLower}/${key}.png`;
-    const prompt = `Masterpiece base character concept art portrait, ${genderLower} ${raceLower} warrior, ${anatomy}, neutral glowing white/pale-gray eyes, neutral dark slate/iron armor with unlit, uncharged runic engravings, neutral hands resting forward at mid-chest (no elemental orbs, no fire, no lightning), centered half-body waist-up portrait, directly facing camera, no full-body shots, high-contrast dark fantasy manhwa style, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black solid dark background, borderless, frameless, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
+    const prompt = `Masterpiece base character concept art portrait, ${genderLower} ${raceLower} warrior, ${anatomy}, neutral glowing white/pale-gray eyes, neutral dark slate/iron armor with unlit, uncharged runic engravings, neutral hands resting forward at mid-chest (no elemental orbs, no fire, no lightning), anatomically correct, exactly two arms, two hands only, centered half-body waist-up portrait, directly facing camera, no full-body shots, high-contrast dark fantasy manhwa style, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black solid dark background, borderless, frameless, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
 
     lines.push(`### ${counter}. ${key}`);
     lines.push(`- **Target File**: \`${targetFile}\``);
@@ -204,13 +370,14 @@ export function buildRaceElementsMarkdown(race: string): { content: string; coun
 
     for (const element of ELEMENTS) {
       const elemLower = element.toLowerCase();
-      const elementDescription =
-        ELEMENT_VISUAL_THEMES[elemLower] || `${element} magic energy aura`;
+      const config = ELEMENT_TIERED_CONFIGS[elemLower];
+      const handAction = config.handAction;
+      const bgVfx = config.backgroundVfx;
 
       const key = `${raceLower}_${genderLower}_${elemLower}`;
       const destination = `packages/asset-pipeline/assets/characters/${raceLower}/${key}.png`;
-      const modificationTask = `Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the armor runes and the raised hand with ${elemLower} magic (${elementDescription}).`;
-      const prompt = `Masterpiece character concept art portrait, ${genderLower} ${raceLower} warrior channeling ${elemLower} magic, based on reference portrait packages/asset-pipeline/assets/normal/${raceLower}/${raceLower}_${genderLower}_base.png, keep exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of reference image, ignite armor runes and raised hand with ${elemLower} magic (${elementDescription}), centered half-body waist-up portrait, facing camera, high-contrast dark fantasy manhwa style, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black solid dark background, borderless, frameless, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
+      const modificationTask = `Keep the exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of the reference image. Ignite the armor runes and pose with ${handAction}, channeling ${elemLower} magic (${bgVfx}).`;
+      const prompt = `Masterpiece character concept art portrait, ${genderLower} ${raceLower} warrior channeling ${elemLower} magic, based on reference portrait packages/asset-pipeline/assets/normal/${raceLower}/${raceLower}_${genderLower}_base.png, keep exact facial features, horns, hair, skin/scale texture, framing, and armor silhouette of reference image, ignite dark slate iron armor runes with ${elemLower} energy, ${handAction}, ${bgVfx}, ${POSITIVE_ARM_ANATOMY_ENFORCER}, centered half-body waist-up portrait, facing camera, high-contrast dark fantasy manhwa style, bold heavy ink outlines, sharp cel-shading, vibrant rim-lighting, seamless pitch-black solid dark background, borderless, frameless, edge-to-edge illustration, 8k resolution, trending on ArtStation`;
 
       lines.push(`### ${counter}. ${key}`);
       lines.push(`- **Reference Image**: \`${refImage}\``);
