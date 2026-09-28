@@ -100,6 +100,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         username: user.username,
         avatarUrl: user.avatarUrl,
         crystals: user.crystals,
+        arcaneDust: user.arcaneDust,
       },
       cards: userCards,
       lineup,

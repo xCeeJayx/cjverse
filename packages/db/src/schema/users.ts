@@ -37,6 +37,7 @@ export const users = pgTable('users', {
   username: text('username').notNull(),
   avatarUrl: text('avatar_url'),
   crystals: integer('crystals').default(100).notNull(),
+  arcaneDust: integer('arcane_dust').default(0).notNull(),
   rating: integer('rating').default(1000).notNull(),
   wins: integer('wins').default(0).notNull(),
   losses: integer('losses').default(0).notNull(),

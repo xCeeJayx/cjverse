@@ -6,3 +6,4 @@ export * from './trade-repository';
 export * from './quest-repository';
 export * from './pack-repository';
 export * from './world-boss-repository';
+export * from './forge-repository';

@@ -149,6 +149,7 @@ export function Navbar({ initialUser }: NavbarProps) {
     { label: 'Arena', href: '/duel', icon: '⚔️' },
     { label: 'World Boss', href: '/boss', icon: '💀' },
     { label: 'Collection / Team', href: '/collection', icon: '🎴' },
+    { label: 'Forge', href: '/forge', icon: '⚒️' },
     { label: 'Shop', href: '/shop', icon: '🏪' },
     { label: 'Market', href: '/market', icon: '⚖️' },
     { label: 'Quests', href: '/quests', icon: '📜', badgeCount: claimableQuestsCount },
@@ -186,6 +187,8 @@ export function Navbar({ initialUser }: NavbarProps) {
                   ? pathname?.startsWith('/duel')
                   : link.href === '/boss'
                   ? pathname?.startsWith('/boss')
+                  : link.href === '/forge'
+                  ? pathname?.startsWith('/forge')
                   : pathname === link.href;
 
               return (

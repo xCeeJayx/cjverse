@@ -46,6 +46,8 @@ import {
   handleBossFightCommand,
   handleBossSpawnCommand,
 } from './commands/boss';
+import { handleSalvageSingle, handleSalvageBulk } from './commands/salvage';
+import { handleFuseCommand } from './commands/fuse';
 import { BoosterPackType } from '@cjverse/game-logic';
 
 // Safe environment variable loading from root and bot .env files
@@ -69,6 +71,8 @@ export * from './commands/quests';
 export * from './commands/shop';
 export * from './commands/pack';
 export * from './commands/boss';
+export * from './commands/salvage';
+export * from './commands/fuse';
 export * from './services/card-resolver';
 export * from './deploy-commands';
 
@@ -733,6 +737,79 @@ export async function handleInteraction(interaction: ChatInputCommandInteraction
     } catch (err) {
       console.error('[Boss Command Error]:', err);
       const fallback = '❌ An error occurred while processing the World Boss command.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'salvage') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    const subcommand = interaction.options.getSubcommand(false);
+
+    try {
+      if (subcommand === 'bulk') {
+        const rarity = interaction.options.getString('rarity', true);
+        const result = await handleSalvageBulk(interaction.user.id, rarity);
+
+        if (!result.success) {
+          await interaction.editReply(result.message || '❌ Bulk salvage failed.');
+          return;
+        }
+
+        await interaction.editReply({ embeds: [result.embed!] });
+        return;
+      }
+
+      // Default or 'single'
+      const cardId = interaction.options.getString('card_id', true);
+      const result = await handleSalvageSingle(interaction.user.id, cardId);
+
+      if (!result.success) {
+        await interaction.editReply(result.message || '❌ Salvage failed.');
+        return;
+      }
+
+      await interaction.editReply({ embeds: [result.embed!] });
+    } catch (err) {
+      console.error('[Salvage Command Error]:', err);
+      const fallback = '❌ An error occurred while salvaging cards.';
+      if (interaction.deferred || typeof interaction.editReply === 'function') {
+        await interaction.editReply(fallback).catch(() => {});
+      } else if (typeof interaction.reply === 'function') {
+        await interaction.reply({ content: fallback, ephemeral: true }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  if (interaction.commandName === 'fuse') {
+    if (typeof interaction.deferReply === 'function') {
+      await interaction.deferReply();
+    }
+
+    const card1 = interaction.options.getString('card1_id', true);
+    const card2 = interaction.options.getString('card2_id', true);
+    const card3 = interaction.options.getString('card3_id', true);
+
+    try {
+      const result = await handleFuseCommand(interaction.user.id, card1, card2, card3);
+
+      if (!result.success) {
+        await interaction.editReply(result.message || '❌ Fusion failed.');
+        return;
+      }
+
+      await interaction.editReply({ embeds: [result.embed!] });
+    } catch (err) {
+      console.error('[Fuse Command Error]:', err);
+      const fallback = '❌ An error occurred while fusing cards.';
       if (interaction.deferred || typeof interaction.editReply === 'function') {
         await interaction.editReply(fallback).catch(() => {});
       } else if (typeof interaction.reply === 'function') {

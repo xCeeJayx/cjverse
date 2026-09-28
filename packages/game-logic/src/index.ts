@@ -10,3 +10,4 @@ export * from './packs';
 export * from './status-effects';
 export * from './resonance';
 export * from './raid';
+export * from './forge';

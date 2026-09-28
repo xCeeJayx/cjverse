@@ -199,6 +199,58 @@ export const commands = [
             )
         )
     ),
+  new SlashCommandBuilder()
+    .setName('salvage')
+    .setDescription('Disenchant cards into Arcane Dust and Crystals in the Arcane Forge')
+    .addSubcommand((sub) =>
+      sub
+        .setName('single')
+        .setDescription('Dismantle a single unequipped, unlisted card')
+        .addStringOption((opt) =>
+          opt
+            .setName('card_id')
+            .setDescription('Card ID to salvage')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('bulk')
+        .setDescription('Dismantle all unequipped, unlisted cards of a rarity tier')
+        .addStringOption((opt) =>
+          opt
+            .setName('rarity')
+            .setDescription('Rarity tier to bulk dismantle')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Normal (15 Dust + 10 Crystals)', value: 'normal' },
+              { name: 'Silver (50 Dust + 35 Crystals)', value: 'silver' },
+              { name: 'Gold (175 Dust + 100 Crystals)', value: 'gold' },
+              { name: 'Diamond (600 Dust + 350 Crystals)', value: 'diamond' }
+            )
+        )
+    ),
+  new SlashCommandBuilder()
+    .setName('fuse')
+    .setDescription('Synthesize 3 cards of the exact same variant tier into a higher-tier card')
+    .addStringOption((opt) =>
+      opt
+        .setName('card1_id')
+        .setDescription('First sacrifice card ID')
+        .setRequired(true)
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName('card2_id')
+        .setDescription('Second sacrifice card ID')
+        .setRequired(true)
+    )
+    .addStringOption((opt) =>
+      opt
+        .setName('card3_id')
+        .setDescription('Third sacrifice card ID')
+        .setRequired(true)
+    ),
 ].map((cmd) => cmd.toJSON());
 
 export async function deployCommands(): Promise<unknown> {
