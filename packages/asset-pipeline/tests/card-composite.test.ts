@@ -2,7 +2,16 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { renderCardComposite, resolveCharacterArtworkPath } from '../src';
+import { createCanvas } from '@napi-rs/canvas';
+import {
+  renderCardComposite,
+  resolveCharacterArtworkPath,
+  resolveFramePath,
+  applyFrameChromaKey,
+  clearKeyedFrameCache,
+  CARD_WIDTH,
+  CARD_HEIGHT,
+} from '../src';
 import { CardEntity } from '@cjverse/game-logic';
 
 describe('Canvas Card Composite Renderer with Fallback', () => {
@@ -121,6 +130,115 @@ describe('Canvas Card Composite Renderer with Fallback', () => {
       fs.writeFileSync(subNeutral, 'subfolder-neutral-data');
       const earthResult = resolveCharacterArtworkPath('orc', 'female', 'earth', tmpDir);
       expect(earthResult).toBe(subNeutral);
+    });
+  });
+
+  describe('Pre-rendered AI Frame Loader with Chroma Keying', () => {
+    const frameTmpDir = path.resolve(os.tmpdir(), `cjverse-frame-test-${Date.now()}`);
+    const framesDir = path.resolve(frameTmpDir, 'frames');
+
+    beforeAll(() => {
+      fs.mkdirSync(framesDir, { recursive: true });
+    });
+
+    afterAll(() => {
+      try {
+        fs.rmSync(frameTmpDir, { recursive: true, force: true });
+      } catch {}
+      clearKeyedFrameCache();
+    });
+
+    it('resolves frame path checking frame_${rarity}.png and ${rarity}.png', () => {
+      const normalFrame = path.resolve(framesDir, 'frame_normal.png');
+      fs.writeFileSync(normalFrame, 'dummy-normal-frame');
+
+      const resolved = resolveFramePath('normal', frameTmpDir);
+      expect(resolved).toBe(normalFrame);
+
+      // Fallback format: gold.png
+      const goldFrame = path.resolve(framesDir, 'gold.png');
+      fs.writeFileSync(goldFrame, 'dummy-gold-frame');
+
+      const resolvedGold = resolveFramePath('gold', frameTmpDir);
+      expect(resolvedGold).toBe(goldFrame);
+    });
+
+    it('masks out neon green #00FF00 inner window while preserving borders and HUD plate', () => {
+      // Create a test frame canvas:
+      // Border and bottom HUD plate are opaque dark gray #202020
+      // Inner window (x: 40, y: 40, w: 520, h: 600) is solid neon green #00FF00
+      const testCanvas = createCanvas(CARD_WIDTH, CARD_HEIGHT);
+      const testCtx = testCanvas.getContext('2d');
+
+      testCtx.fillStyle = '#202020';
+      testCtx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+
+      testCtx.fillStyle = '#00ff00';
+      testCtx.fillRect(40, 40, 520, 600);
+
+      // Apply chroma key
+      const keyedCanvas = applyFrameChromaKey(testCanvas, 'test-frame-key', CARD_WIDTH, CARD_HEIGHT);
+      const keyedCtx = keyedCanvas.getContext('2d');
+      const imgData = keyedCtx.getImageData(0, 0, CARD_WIDTH, CARD_HEIGHT);
+
+      // Verify pixel in inner window (center of green box) is now fully transparent (alpha === 0)
+      const centerPixelIdx = ((300 * CARD_WIDTH) + 300) * 4;
+      expect(imgData.data[centerPixelIdx + 3]).toBe(0);
+
+      // Verify pixel on outer border (x: 10, y: 10) is still fully opaque (alpha === 255)
+      const borderPixelIdx = ((10 * CARD_WIDTH) + 10) * 4;
+      expect(imgData.data[borderPixelIdx + 3]).toBe(255);
+      expect(imgData.data[borderPixelIdx]).toBe(0x20);
+
+      // Verify pixel on bottom HUD plate (x: 300, y: 750) is still fully opaque
+      const hudPlatePixelIdx = ((750 * CARD_WIDTH) + 300) * 4;
+      expect(imgData.data[hudPlatePixelIdx + 3]).toBe(255);
+    });
+
+    it('renders card composite with pre-rendered chroma-keyed frame overlay and Layer 4 dynamic HUD', async () => {
+      // Create a real frame image with green window on disk
+      const frameCanvas = createCanvas(CARD_WIDTH, CARD_HEIGHT);
+      const frameCtx = frameCanvas.getContext('2d');
+      frameCtx.fillStyle = '#111827';
+      frameCtx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+      frameCtx.fillStyle = '#00ff00';
+      frameCtx.fillRect(40, 40, 520, 600);
+
+      const framePng = frameCanvas.toBuffer('image/png');
+      const framePath = path.resolve(framesDir, 'frame_diamond.png');
+      fs.writeFileSync(framePath, framePng);
+
+      const mockCard: CardEntity = {
+        id: 'CHROMA1',
+        seed: 777,
+        race: 'dragon',
+        variant: 'diamond',
+        element: 'cosmic',
+        elementTier: 'S',
+        evolutionStage: 3,
+        level: 10,
+        powerScore: 1200,
+      };
+
+      const buffer = await renderCardComposite(mockCard, frameTmpDir);
+      expect(buffer).toBeInstanceOf(Buffer);
+      expect(buffer[0]).toBe(0x89);
+      expect(buffer[1]).toBe(0x50);
+      expect(buffer[2]).toBe(0x4e);
+      expect(buffer[3]).toBe(0x47);
+    });
+
+    it('verifies packages/asset-pipeline/assets/prompts/frames/frames.md contains all 5 rarity specifications', () => {
+      const framesMdPath = path.resolve(__dirname, '../assets/prompts/frames/frames.md');
+      expect(fs.existsSync(framesMdPath)).toBe(true);
+
+      const content = fs.readFileSync(framesMdPath, 'utf8');
+      expect(content).toContain('Normal (Common)');
+      expect(content).toContain('Silver (Uncommon)');
+      expect(content).toContain('Gold (Rare)');
+      expect(content).toContain('Diamond (Epic)');
+      expect(content).toContain('Rainbow (Legendary Secret)');
+      expect(content).toContain('#00FF00');
     });
   });
 });

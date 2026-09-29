@@ -109,6 +109,82 @@ export function resolveAssetPath(
 }
 
 /**
+ * Resolves pre-rendered card frame overlay path based on rarity variant:
+ * 1. packages/asset-pipeline/assets/frames/frame_${rarity.toLowerCase()}.png
+ * 2. Fallback to ${rarity.toLowerCase()}.png
+ */
+export function resolveFramePath(
+  variant: string,
+  assetDirectory = 'apps/web/public/assets'
+): string | null {
+  const v = (variant || 'normal').toLowerCase();
+  return (
+    resolveAssetPath(assetDirectory, 'frames', `frame_${v}.png`) ||
+    resolveAssetPath(assetDirectory, 'frames', `${v}.png`)
+  );
+}
+
+/**
+ * In-memory cache for processed (chroma-keyed) frame canvases
+ */
+const keyedFrameCache = new Map<string, any>();
+
+export function clearKeyedFrameCache(): void {
+  keyedFrameCache.clear();
+}
+
+/**
+ * Masks out the inner neon green (#00FF00) chroma key window from an AI-generated frame overlay.
+ * Uses tolerance check so variations in compression, lighting, or antialiasing near #00FF00
+ * are cleanly keyed out while preserving non-green border and HUD plate artwork.
+ */
+export function applyFrameChromaKey(
+  frameImg: any,
+  cacheKey?: string,
+  targetWidth: number = CARD_WIDTH,
+  targetHeight: number = CARD_HEIGHT
+): any {
+  if (cacheKey && keyedFrameCache.has(cacheKey)) {
+    return keyedFrameCache.get(cacheKey);
+  }
+
+  const offscreen = createCanvas(targetWidth, targetHeight);
+  const offCtx = offscreen.getContext('2d');
+  offCtx.drawImage(frameImg, 0, 0, targetWidth, targetHeight);
+
+  const imgData = offCtx.getImageData(0, 0, targetWidth, targetHeight);
+  const data = imgData.data;
+  let hasGreen = false;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+
+    if (a === 0) continue;
+
+    // Detect neon green (#00FF00) window pixels:
+    // Pure green is (0, 255, 0).
+    // Allow slight compression/antialiasing: g is high, significantly exceeds r and b
+    if (g > 150 && r < 120 && b < 120 && g > r * 1.5 && g > b * 1.5) {
+      data[i + 3] = 0; // Set alpha to 0 (fully transparent)
+      hasGreen = true;
+    }
+  }
+
+  if (hasGreen) {
+    offCtx.putImageData(imgData, 0, 0);
+  }
+
+  if (cacheKey) {
+    keyedFrameCache.set(cacheKey, offscreen);
+  }
+
+  return offscreen;
+}
+
+/**
  * Resolves character artwork path based on the exact fallback cascade:
  * 1. packages/asset-pipeline/assets/characters/${card.race}/${card.race}_${card.gender}_${card.element}.png
  * 2. packages/asset-pipeline/assets/characters/${card.race}_${card.gender}_${card.element}.png
@@ -280,11 +356,7 @@ export async function renderCard(
       'races',
       `${card.race.toLowerCase()}.png`
     );
-  const frameSlicePath = resolveAssetPath(
-    assetDirectory,
-    'frames',
-    `${card.variant.toLowerCase()}.png`
-  );
+  const frameSlicePath = resolveFramePath(card.variant, assetDirectory);
 
   // =========================================================================
   // LAYER 1: Solid dark base background (#0a0c10)
@@ -351,31 +423,38 @@ export async function renderCard(
   }
 
   // =========================================================================
-  // LAYER 3: Subtle top/bottom dark gradient overlays (for text legibility)
-  // =========================================================================
-  renderTextLegibilityGradients(ctx, canvas.width, canvas.height);
-
-  // =========================================================================
-  // LAYER 4: Card Rarity Border / Frame overlay (Normal, Silver, Gold, Diamond)
+  // LAYER 3: AI 1-Piece Frame Overlay (Border + Bottom Bezel Plate)
+  // Or Procedural Ornate Frame Fallback
   // =========================================================================
   let frameLoaded = false;
   if (frameSlicePath) {
     try {
-      const img = await getOrLoadImage(frameSlicePath);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const rawFrameImg = await getOrLoadImage(frameSlicePath);
+      // Mask out the inner #00FF00 box before blitting
+      const keyedFrame = applyFrameChromaKey(
+        rawFrameImg,
+        frameSlicePath,
+        canvas.width,
+        canvas.height
+      );
+      ctx.drawImage(keyedFrame, 0, 0, canvas.width, canvas.height);
       frameLoaded = true;
     } catch {
       frameLoaded = false;
     }
   }
+
   if (!frameLoaded) {
+    // When no pre-rendered frame is present, render legibility gradient & procedural frame
+    renderTextLegibilityGradients(ctx, canvas.width, canvas.height);
     renderOrnateFrame(ctx, card);
   }
 
   // =========================================================================
-  // LAYER 5: Unified Bottom HUD (Card Identity, Element Tier, Level, Card ID & 4 Combat Stats)
+  // LAYER 4: Dynamic Text & Numbers Stamped into HUD plate
+  // (Element badge, Title, Level, Card ID, Stats)
   // =========================================================================
-  renderUnifiedBottomHUD(ctx, card, stats);
+  renderUnifiedBottomHUD(ctx, card, stats, { hasFrameOverlay: frameLoaded });
 
   return canvas.toBuffer('image/png');
 }
@@ -734,6 +813,27 @@ function renderOrnateFrame(ctx: SKRSContext2D, card: CardEntity) {
     drawCornerGem(ctx, CARD_WIDTH - margin - 4, margin + 4, '#22d3ee');
     drawCornerGem(ctx, margin + 4, CARD_HEIGHT - margin - 4, '#22d3ee');
     drawCornerGem(ctx, CARD_WIDTH - margin - 4, CARD_HEIGHT - margin - 4, '#22d3ee');
+  } else if (variant === 'rainbow') {
+    const rainbowGrad = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
+    rainbowGrad.addColorStop(0, '#f43f5e');
+    rainbowGrad.addColorStop(0.2, '#fb923c');
+    rainbowGrad.addColorStop(0.4, '#facc15');
+    rainbowGrad.addColorStop(0.6, '#4ade80');
+    rainbowGrad.addColorStop(0.8, '#38bdf8');
+    rainbowGrad.addColorStop(1, '#c084fc');
+
+    ctx.lineWidth = 18;
+    ctx.strokeStyle = rainbowGrad;
+    ctx.strokeRect(margin, margin, CARD_WIDTH - margin * 2, CARD_HEIGHT - margin * 2);
+
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = '#ffffff';
+    ctx.strokeRect(innerMargin, innerMargin, CARD_WIDTH - innerMargin * 2, CARD_HEIGHT - innerMargin * 2);
+
+    drawCornerGem(ctx, margin + 4, margin + 4, '#e879f9');
+    drawCornerGem(ctx, CARD_WIDTH - margin - 4, margin + 4, '#38bdf8');
+    drawCornerGem(ctx, margin + 4, CARD_HEIGHT - margin - 4, '#facc15');
+    drawCornerGem(ctx, CARD_WIDTH - margin - 4, CARD_HEIGHT - margin - 4, '#4ade80');
   } else {
     // Normal: Weathered iron / slate border
     ctx.lineWidth = 14;
@@ -778,13 +878,14 @@ function drawCornerRivet(ctx: SKRSContext2D, x: number, y: number) {
 }
 
 // -------------------------------------------------------------
-// Layer 5: Unified Bottom HUD (Card Identity, Element Tier, Level, Card ID & 4 Combat Stats)
+// Layer 4/5: Unified Bottom HUD (Card Identity, Element Tier, Level, Card ID & 4 Combat Stats)
 // Docked at the bottom inside the frame padding
 // -------------------------------------------------------------
 export function renderUnifiedBottomHUD(
   ctx: SKRSContext2D,
   card: CardEntity & { name?: string },
-  stats: { maxHp: number; atk: number; def: number }
+  stats: { maxHp: number; atk: number; def: number },
+  options: { hasFrameOverlay?: boolean } = {}
 ) {
   ctx.save();
 
@@ -793,33 +894,37 @@ export function renderUnifiedBottomHUD(
   const hudW = UNIFIED_HUD_WIDTH;
   const hudH = UNIFIED_HUD_HEIGHT;
 
-  // A. Main Container
-  // Rounded rectangle (radius = 12), dark translucent fill (rgba(10, 16, 26, 0.90)),
-  // subtle 1px border matching card rarity or slate blue (rgba(70, 95, 130, 0.4)).
-  let borderColor = 'rgba(70, 95, 130, 0.4)';
-  const variant = (card.variant || '').toLowerCase();
-  if (variant === 'diamond') {
-    borderColor = 'rgba(6, 182, 212, 0.45)';
-  } else if (variant === 'gold') {
-    borderColor = 'rgba(234, 179, 8, 0.45)';
-  } else if (variant === 'silver') {
-    borderColor = 'rgba(203, 213, 225, 0.45)';
+  // A. Main Container (Rendered when no pre-rendered frame overlay is present)
+  // When an AI 1-piece frame overlay is present, the frame already includes the bottom HUD plate,
+  // so we skip the procedural dark box to reveal the AI frame plate styling.
+  if (!options.hasFrameOverlay) {
+    let borderColor = 'rgba(70, 95, 130, 0.4)';
+    const variant = (card.variant || '').toLowerCase();
+    if (variant === 'diamond') {
+      borderColor = 'rgba(6, 182, 212, 0.45)';
+    } else if (variant === 'gold') {
+      borderColor = 'rgba(234, 179, 8, 0.45)';
+    } else if (variant === 'silver') {
+      borderColor = 'rgba(203, 213, 225, 0.45)';
+    } else if (variant === 'rainbow') {
+      borderColor = 'rgba(168, 85, 247, 0.5)';
+    }
+
+    ctx.fillStyle = 'rgba(10, 16, 26, 0.90)';
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1;
+    roundRect(ctx, hudX, hudY, hudW, hudH, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    // Subtle horizontal divider line across the container at y = containerY + 50 (rgba(255, 255, 255, 0.1))
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(hudX, hudY + 50);
+    ctx.lineTo(hudX + hudW, hudY + 50);
+    ctx.stroke();
   }
-
-  ctx.fillStyle = 'rgba(10, 16, 26, 0.90)';
-  ctx.strokeStyle = borderColor;
-  ctx.lineWidth = 1;
-  roundRect(ctx, hudX, hudY, hudW, hudH, 12);
-  ctx.fill();
-  ctx.stroke();
-
-  // Subtle horizontal divider line across the container at y = containerY + 50 (rgba(255, 255, 255, 0.1))
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(hudX, hudY + 50);
-  ctx.lineTo(hudX + hudW, hudY + 50);
-  ctx.stroke();
 
   // B. Top Row: Identity & Metadata (y = containerY + 28 / vertical midpoint containerY + 25)
   // Left Badge (Element & Tier):
